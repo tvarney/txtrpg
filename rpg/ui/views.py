@@ -1,6 +1,6 @@
 
 import tkinter
-from rpg.ui import widgets
+from rpg.ui import components, widgets
 
 import typing
 if typing.TYPE_CHECKING:
@@ -221,22 +221,46 @@ class MainMenuView(View):
         self.frmButtons.pack()
 
     def _action_new_game(self):
-        pass
+        self._game_obj.stack.push("NewGame")
 
     def _action_load_game(self):
-        pass
+        self._game_obj.stack.push("LoadGame")
 
     def _action_quit(self):
         self._game_obj.quit(0)
 
     def _action_options(self):
-        pass
+        self._game_obj.stack.push("OptionsMenu")
 
 
 @view_impl
 class NewGameView(View):
     def __init__(self, game: 'app.Game'):
         View.__init__(self, game, "NewGame")
+
+        self.frmContent = tkinter.Frame(self)
+        self.entryName = widgets.LabeledEntry(self.frmContent, "Name")
+        self.entryName.pack(side="left")
+        self.frmContent.pack(side='top', fill='both', expand=True, anchor="n")
+
+        self.frmNavigation = tkinter.Frame(self)
+        self.btnBack = widgets.Button(self.frmNavigation, "Back", self._action_back)
+        self.btnBack.pack(side=tkinter.LEFT)
+        self.btnNext = widgets.Button(self.frmNavigation, "Next", self._action_next)
+        self.btnNext.pack(side=tkinter.RIGHT)
+        self.frmNavigation.pack(side="bottom", fill="x", expand=True, anchor='s')
+
+    def start(self):
+        self.entryName.entry.delete(0, tkinter.END)
+
+    def _action_back(self):
+        self._game_obj.stack.pop()
+
+    def _action_next(self):
+        name = self.entryName.entry.get()
+        if name == "":
+            return
+        self._game_obj.stack.push("GameView")
 
 
 @view_impl
@@ -249,3 +273,39 @@ class LoadGameView(View):
 class OptionsMenuView(View):
     def __init__(self, game: 'app.Game'):
         View.__init__(self, game, "OptionsMenu")
+
+
+@view_impl
+class GameViewImpl(GameView):
+    def __init__(self, game: 'app.Game'):
+        GameView.__init__(self, game, "GameView")
+        self.frmOptions_Internal = None  # type: Optional[tkinter.Frame]
+
+        self.txtContent = widgets.StaticTextArea(self)
+        self.frmStatus = components.StatusBar(self)
+        self.frmOptions = tkinter.Frame(self)
+
+        self.frmStatus.grid(column=0, row=0, sticky='ns')
+        self.txtContent.grid(column=1, row=0, sticky='nswe')
+        self.frmOptions.grid(column=0, row=1, columnspan=2, sticky='ew')
+
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+    def set_text(self, text: str):
+        self.txtContent.replace(text)
+
+    def set_options(self, option_list: 'options.OptionList'):
+        if self.frmOptions_Internal is not None:
+            self.frmOptions_Internal.grid_remove()
+        self.frmOptions_Internal = option_list.generate(self._game_obj, self.frmOptions)
+        self.frmOptions_Internal.grid(sticky="NSEW")
+
+    def text_area(self) -> tkinter.Text:
+        return self.txtContent
+
+    def start(self):
+        pass
+
+    def resume(self):
+        self.start()

@@ -61,8 +61,8 @@ class LabeledVariable(tkinter.Frame):
         self.label = tkinter.Label(self, **cnf_lbl)
         self.variable = tkinter.Label(self, **cnf_var)
 
-        self.label.pack(orientation=orientation)
-        self.variable.pack(orientation=orientation)
+        self.label.pack(side=orientation)
+        self.variable.pack(side=orientation)
         self.configure(kwargs)
 
     def get_variable(self):

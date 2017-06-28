@@ -85,7 +85,7 @@ class StatusBar(tkinter.Frame):
         lbl.grid(row=0, column=0, columnspan=2, sticky='WE')
         for index, item in enumerate(items):
             variable = tkinter.StringVar()
-            lbl = tkinter.Label(section, text=item.name, anchor='W', font=self._font_item)
+            lbl = tkinter.Label(section, text=item.name, anchor='w', font=self._font_item)
             var = tkinter.Label(section, textvariable=variable, font=self._font_item)
 
             lbl.grid(row=index+1, column=0, sticky='WE', padx=5)
