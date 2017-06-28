@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 
 
 class Package(object):
-    def __init__(self, path_name: 'Optional[str]'=None):
+    def __init__(self, path_name: 'Optional[str]'=None, root_path: 'Optional[str]'=None):
         self._name = ""
         self._path = ""
         self._is_dir = False  # type: bool
@@ -25,13 +25,13 @@ class Package(object):
         self._finalize = list()  # type: List[Optional[Callable[[app.Game], None]]]
 
         # Public Data Members
-        self.include = False  # type: bool
+        self.include = True  # type: bool
         self.resources = resources.Resources()
 
         if path_name:
-            self.load(path_name)
+            self.load(path_name, root_path)
 
-    def load(self, path_name: str) -> int:
+    def load(self, path_name: str, root_path: 'Optional[str]'=None) -> 'Tuple[int, Optional[str]]':
         if not os.path.exists(path_name):
             raise FileNotFoundError("Path '{}' does not exist".format(path_name))
 
@@ -40,9 +40,15 @@ class Package(object):
         self._path = path_name
 
         if self._is_dir:
-            return self._load_dir(path_name)
+            resource_count, err_str = self._load_dir(path_name, root_path)
+            if self._name is None or self._name == "":
+                self._name = os.path.normpath(os.path.relpath(path_name, root_path))
+            return resource_count, err_str
         elif self._is_file:
-            return self._load_file(path_name)
+            resource_count, err_str = self._load_file(path_name, root_path)
+            if self._name is None or self._name == "":
+                self._name = os.path.splitext(os.path.normpath(os.path.relpath(path_name, root_path)))[0]
+            return resource_count, err_str
         else:
             raise IOError("Path '{}' is neither a file nor directory".format(path_name))
 
@@ -54,6 +60,9 @@ class Package(object):
 
     def is_loaded(self) -> bool:
         return self._path is not None and (self.is_directory() or self.is_file())
+
+    def name(self) -> 'Optional[str]':
+        return self._name
 
     def author(self) -> 'Optional[str]':
         return self._author
@@ -83,6 +92,9 @@ class Package(object):
         err_str = ""
 
         for file_name in os.listdir(dir_path):
+            if file_name == "__pycache__":
+                continue
+
             file_path = os.path.join(dir_path, file_name)
             if os.path.isfile(file_path):
                 file_loaded_items, file_errors = self._load_file(file_path, root_path)
@@ -135,11 +147,13 @@ class Package(object):
                         try:
                             _package_obj = _package_cls()
                             self.resources.add(_package_obj)
+                            _loaded_items += 1
                         except Exception as e:
                             _err_str += "Could not add Resource from class {}: {}\n".format(_package_cls, e)
                 else:
                     if issubclass(type(_package_obj), resource.Resource):
                         self.resources.add(_package_obj)
+                        _loaded_items += 1
         except Exception as e:
             _err_str += "{}:\n{}".format(e, e.__traceback__)
         return _loaded_items, (_err_str if _err_str != "" else None)

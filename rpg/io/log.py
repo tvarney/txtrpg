@@ -28,7 +28,7 @@ class Log(object):
         self._fp = None
 
     def level(self, level: 'Optional[LogLevel]'=None) -> LogLevel:
-        if level:
+        if level is not None:
             self._level = level
         return self._level
 
