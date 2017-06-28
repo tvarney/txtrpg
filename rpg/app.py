@@ -7,7 +7,7 @@ import tkinter
 import typing
 if typing.TYPE_CHECKING:
     from typing import Dict, Optional
-    from typing import ModuleType
+    from types import ModuleType
 
 
 class Game(object):
