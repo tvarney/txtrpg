@@ -1,19 +1,18 @@
 
-from rpg.io import log
+from rpg.io import log, package
 from rpg.ui import views
 import sys
 import tkinter
 
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Dict, Optional
-    from types import ModuleType
+    from typing import List, Optional
 
 
 class Game(object):
     def __init__(self):
         self._root = None  # type: Optional[tkinter.Tk]
-        self._modules = dict()  # type: Dict[ModuleType]
+        self._packages = list()  # type: List[package.Package]
         self._return_value = 0  # type: int
         self._initial_view = None  # type: None
         
