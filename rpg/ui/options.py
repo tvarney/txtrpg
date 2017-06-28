@@ -8,6 +8,7 @@ if typing.TYPE_CHECKING:
     from rpg import app, event
     from typing import List, Optional, Tuple, Union
 
+
 class Option(object):
     def __init__(self, name, event_instance: 'event.GameEvent', visible: bool=True):
         self.name = name
@@ -37,13 +38,13 @@ class OptionFrame(tkinter.Frame):
                     self._children.append((opt.generate(game, self), row, col))
 
     def _do_place(self, width, height):
-        full_width = max(self.master.winfo_width(), 800)
+        full_width = max(width, 800)
         space_width = (full_width - 800) / 2
         part_width = full_width - space_width
         portion = 1 / OptionList.MaxColumns
         rel_size = (part_width / full_width) * portion
         offset = (portion * 0.5) * (space_width / full_width)
-        new_height = 80 + (max(600, self.master.winfo_height()) - 600) * 0.5
+        new_height = 80 + (max(600, height) - 600) * 0.5
 
         self.configure(width=full_width, height=new_height)
         for opt, row, col in self._children:
@@ -111,8 +112,8 @@ class OptionList(object):
     def clear(self):
         for row in range(OptionList.MaxRows):
             for col in range(OptionList.MaxColumns):
-                self._options[row][col]=None
-
+                self._options[row][col] = None
+    
     def set(self, option: Option, row: int, column: int):
         self._options[row][column] = option
 
