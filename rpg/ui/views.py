@@ -13,10 +13,26 @@ class View(tkinter.Frame):
         tkinter.Frame.__init__(game.root())
         self._game_obj = game
         self._game_view = False
+        self._initial_view = False
         self._name = name
 
     def name(self) -> str:
+        """
+        :return: The lookup-name of this view
+        """
         return self._name
+
+    def is_initial_view(self) -> bool:
+        """
+        :return: If this view is the initial view
+        """
+        return self._initial_view
+
+    def is_game_view(self) -> bool:
+        """
+        :return: If this view implements the GameView interface
+        """
+        return self._game_view
 
     def start(self):
         """
@@ -55,7 +71,7 @@ class GameView(View):
     def display(self, displayable: 'resource.Displayable'):
         self.set_text(displayable.text(self._game_obj))
         self.set_options(displayable.options(self._game_obj))
-    
+
     def set_text(self, text: str):
         raise NotImplementedError()
 
@@ -64,10 +80,13 @@ class GameView(View):
 
 
 class ViewManager(object):
+    AllViews = []       # type: List[View]
+
     def __init__(self, game_object: 'app.Game'):
         self._game_obj = game_object
         self._stack = list()  # type: List[View]
         self._views = dict()  # type: Dict[str, View]
+        self._initial_view = None  # type: Optional[str]
 
     def add(self, name: str, view: View):
         """
@@ -152,3 +171,33 @@ class ViewManager(object):
 
     def current(self) -> 'Optional[View]':
         return self._stack[-1] if len(self._stack) > 0 else None
+
+
+def view_impl(cls):
+    ViewManager.AllViews.append(cls)
+    return cls
+
+
+@view_impl
+class MainMenuView(View):
+    def __init__(self, game: 'app.Game'):
+        View.__init__(self, game, "MainMenu")
+        self._initial_view = True
+
+
+@view_impl
+class NewGameView(View):
+    def __init__(self, game: 'app.Game'):
+        View.__init__(self, game, "NewGame")
+
+
+@view_impl
+class LoadGameView(View):
+    def __init__(self, game: 'app.Game'):
+        View.__init__(self, game, "LoadGame")
+
+
+@view_impl
+class OptionsMenuView(View):
+    def __init__(self, game: 'app.Game'):
+        View.__init__(self, game, "OptionsMenu")
