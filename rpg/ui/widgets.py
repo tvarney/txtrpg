@@ -44,7 +44,7 @@ class LabeledVariable(tkinter.Frame):
         else:
             cnf_var = dict()
 
-        orientation=tkinter.LEFT
+        orientation = tkinter.LEFT
         if "orientation" in kwargs:
             orientation = kwargs["orientation"]
             del kwargs["orientation"]
@@ -121,5 +121,3 @@ class StaticTextArea(tkinter.Text):
         Alias to the delete method which removes all text
         """
         self.delete(1.0, 'end')
-
-

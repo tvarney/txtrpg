@@ -113,7 +113,7 @@ class OptionList(object):
         for row in range(OptionList.MaxRows):
             for col in range(OptionList.MaxColumns):
                 self._options[row][col] = None
-    
+
     def set(self, option: Option, row: int, column: int):
         self._options[row][column] = option
 

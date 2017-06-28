@@ -96,8 +96,8 @@ class Package(object):
                     err_str += file_errors
 
         return loaded_items, (err_str if err_str != "" else None)
-    
-    def _load_file(self, file_path: str, root_path: 'Optional[str]'=None) -> Tuple[int, Optional[str]]:
+
+    def _load_file(self, file_path: str, root_path: 'Optional[str]'=None) -> 'Tuple[int, Optional[str]]':
         _loaded_items = 0
         _err_str = ""
         try:

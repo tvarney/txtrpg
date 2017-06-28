@@ -93,4 +93,3 @@ class StatusBar(tkinter.Frame):
             self._widgets[item] = (lbl, var, variable)
 
         section.pack(side=side)
-

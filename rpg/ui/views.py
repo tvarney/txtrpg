@@ -6,6 +6,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import resource
+    from rpg.ui import options
     from typing import Dict, List, Optional
 
 

@@ -18,7 +18,7 @@ class LogLevel(IntEnum):
 class Log(object):
     def __init__(self, file_path: str, echo: bool=False, level: LogLevel=LogLevel.Info):
         """
-        :param file_name: The path name of the log file to write to
+        :param file_path: The path name of the log file to write to
         :param echo: If this log should echo statements to standard output
         :param level: The logging level threshold
         """
