@@ -1,4 +1,5 @@
 
+from rpg.io import log
 import sys
 import tkinter
 
@@ -18,7 +19,7 @@ class Game(object):
         self.resources = None  # type: None
         self.stack = None  # type: None
         self.state = None  # type: None
-        self.log = None  # type: None
+        self.log = log.Log  # type: log.Log
 
     def root(self) -> 'Optional[tkinter.Frame]':
         """Get the root tkinter frame
