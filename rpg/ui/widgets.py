@@ -10,7 +10,7 @@ class Button(tkinter.Button):
     """
     Wrapper around a tkinter.Button which supports setting the text and command on initialization
     """
-    def __init__(self, root: tkinter.Frame, text: str, command: 'Callable[[None], None]', *args, **kwargs):
+    def __init__(self, root: tkinter.Frame, text: str, command: 'Callable', *args, **kwargs):
         tkinter.Button.__init__(self, root, *args, **kwargs)
         self['text'] = text
         self['command'] = command

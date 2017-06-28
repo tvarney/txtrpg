@@ -1,5 +1,6 @@
 
 from rpg.io import log
+from rpg.ui import views
 import sys
 import tkinter
 
@@ -17,7 +18,7 @@ class Game(object):
         self._initial_view = None  # type: None
         
         self.resources = None  # type: None
-        self.stack = None  # type: None
+        self.stack = views.ViewManager(self)  # type: views.ViewManager
         self.state = None  # type: None
         self.log = log.Log  # type: log.Log
 
@@ -49,16 +50,24 @@ class Game(object):
         self._root.geometry("800x600")
         self._root.minsize(800, 600)
 
+        self.stack.load_views()
+        if self.stack.initial_view is None:
+            self._abort("No initial view defined")
+        self.stack.push(self.stack.initial_view())
+
         try:
             tkinter.mainloop()
         except Exception as e:
             # This will force a full shutdown
             self._abort("Caught Exception at top level: {}\n{}", e, e.__traceback__)
 
+        self.stack.finalize()
+        self.stack.clear_views()
+
         return self._return_value
 
-    def _abort(self, message, *vargs):
-        print()
+    def _abort(self, message, *vargs, **kwargs):
+        self.log.fatal(message, *vargs, **kwargs)
         self._root.destroy()
         self._root = None
         sys.exit(-1)

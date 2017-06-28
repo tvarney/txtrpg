@@ -1,5 +1,6 @@
 
 import tkinter
+from rpg.ui import widgets
 
 import typing
 if typing.TYPE_CHECKING:
@@ -10,7 +11,7 @@ if typing.TYPE_CHECKING:
 
 class View(tkinter.Frame):
     def __init__(self, game: 'app.Game', name: str):
-        tkinter.Frame.__init__(game.root())
+        tkinter.Frame.__init__(self, game.root())
         self._game_obj = game
         self._game_view = False
         self._initial_view = False
@@ -80,7 +81,7 @@ class GameView(View):
 
 
 class ViewManager(object):
-    AllViews = []       # type: List[View]
+    AllViews = []       # type: List[type(View)]
 
     def __init__(self, game_object: 'app.Game'):
         self._game_obj = game_object
@@ -88,15 +89,28 @@ class ViewManager(object):
         self._views = dict()  # type: Dict[str, View]
         self._initial_view = None  # type: Optional[str]
 
-    def add(self, name: str, view: View):
-        """
-        Add a new View instance to the dictionary of available views
-        :param name: The name of the view, used when pushing the view onto the stack
-        :param view: The actual instance of the view
-        """
-        if name in self._views:
-            self._game_obj.log.warning("Overwriting {} with {} for name {}", self._views[name], view, name)
-        self._views[name] = view
+    def load_views(self):
+        if self._game_obj.root() is None:
+            raise Exception("Can not load views without valid tkinter.Tk() root")
+
+        for cls_view in ViewManager.AllViews:
+            view_obj = cls_view(self._game_obj)  # type: View
+            view_name = view_obj.name()  # type: str
+            if view_name in self._views:
+                self._game_obj.log.warning("Duplicate name for view '{}': overwriting {} with {}", view_name,
+                                           repr(self._views[view_name]), repr(view_obj))
+            self._views[view_name] = view_obj
+
+            if view_obj.is_initial_view():
+                if self._initial_view is not None:
+                    self._game_obj.log.warning("Overwriting initial view: {} -> {}", self._initial_view, view_name)
+                self._initial_view = view_name
+
+    def clear_views(self):
+        self._views = dict()
+
+    def initial_view(self) -> 'Optional[str]':
+        return self._initial_view
 
     def swap(self, view_name: str):
         """
@@ -160,6 +174,11 @@ class ViewManager(object):
                 self._stack[-1].pack(side="top", fill="both", expand=True)
                 self._stack[-1].resume()
 
+    def finalize(self):
+        for view in self._stack:
+            view.stop()
+        self._stack.clear()
+
     def clear(self, quit_if_empty: bool=False):
         """
         Remove all views from the stack
@@ -173,7 +192,7 @@ class ViewManager(object):
         return self._stack[-1] if len(self._stack) > 0 else None
 
 
-def view_impl(cls):
+def view_impl(cls: type(View)):
     ViewManager.AllViews.append(cls)
     return cls
 
@@ -183,6 +202,34 @@ class MainMenuView(View):
     def __init__(self, game: 'app.Game'):
         View.__init__(self, game, "MainMenu")
         self._initial_view = True
+        self.lblTitle = tkinter.Label(self, text="Text RPG", font=("Helvetica", 28, 'bold'))
+        self.frmSpace1 = tkinter.Frame(self)
+        self.frmButtons = tkinter.Frame(self)
+
+        self.btnNewGame = widgets.Button(self.frmButtons, "New Game", self._action_new_game)
+        self.btnLoadGame = widgets.Button(self.frmButtons, "Load Game", self._action_load_game)
+        self.btnOptions = widgets.Button(self.frmButtons, "Options", self._action_options)
+        self.btnQuit = widgets.Button(self.frmButtons, "Quit", self._action_quit)
+
+        self.lblTitle.pack()
+        self.frmSpace1.pack(pady=10)
+        self.btnNewGame.pack(fill='x', expand=True)
+        self.btnLoadGame.pack(fill='x', expand=True)
+        self.btnOptions.pack(fill='x', expand=True)
+        self.btnQuit.pack(fill='x', expand=True)
+        self.frmButtons.pack()
+
+    def _action_new_game(self):
+        pass
+
+    def _action_load_game(self):
+        pass
+
+    def _action_quit(self):
+        self._game_obj.quit(0)
+
+    def _action_options(self):
+        pass
 
 
 @view_impl
