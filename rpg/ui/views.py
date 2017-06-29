@@ -221,9 +221,11 @@ class MainMenuView(View):
         self.frmButtons.pack()
 
     def _action_new_game(self):
+        self._game_obj.build_resources()
         self._game_obj.stack.push("NewGame")
 
     def _action_load_game(self):
+        self._game_obj.build_resources()
         self._game_obj.stack.push("LoadGame")
 
     def _action_quit(self):

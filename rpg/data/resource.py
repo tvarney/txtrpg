@@ -4,6 +4,7 @@ from enum import IntEnum, unique
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
+    from typing import Optional
 
 
 @unique
@@ -19,6 +20,7 @@ class Resource(object):
     def __init__(self, type_id: ResourceType, resource_id: str):
         self._type_id = type_id  # type: ResourceType
         self._resource_id = resource_id  # type: str
+        self._package = None  # type: Optional[str]
 
     def type_id(self) -> ResourceType:
         """
@@ -33,6 +35,9 @@ class Resource(object):
         :return: The resource_id string of this Resource instance
         """
         return self._resource_id
+
+    def package(self) -> 'Optional[str]':
+        return self._package
 
 
 class Displayable(Resource):

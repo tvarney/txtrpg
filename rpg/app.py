@@ -1,6 +1,7 @@
 
 import os
 import os.path
+from rpg.data import resources
 from rpg.io import log, package
 from rpg.ui import views
 import sys
@@ -18,7 +19,7 @@ class Game(object):
         self._return_value = 0  # type: int
         self._initial_view = None  # type: None
 
-        self.resources = None  # type: None
+        self.resources = resources.Resources()  # type: resources.Resources()
         self.stack = views.ViewManager(self)  # type: views.ViewManager
         self.state = None  # type: None
         self.log = log.Log("./log.txt", True)  # type: log.Log
@@ -41,6 +42,20 @@ class Game(object):
             root.destroy()
             self._return_value = return_value
 
+    def build_resources(self):
+        self.log.debug("Building Resources...")
+        package_count = 0
+        self.resources.clear()
+        for pkg in self._packages:
+            if pkg.include:
+                self.log.debug("   merging '{}'...", pkg.name())
+                err = self.resources.merge(pkg.resources, pkg.dependencies())
+                if err is not None:
+                    self.log.warning("Errors occurred while merging '{}' to master resources collection:\n{}",
+                                     pkg.name(), err)
+                package_count += 1
+        self.log.debug("Built Resources: Included {} packages", package_count)
+
     def run(self) -> int:
         """Run the application
         :return: The return value specified by the first call to Application.quit()
@@ -54,7 +69,9 @@ class Game(object):
         self._root.geometry("800x600")
         self._root.minsize(800, 600)
 
+        # Load data - this just creates the package listing which can be toggled on/off
         self._load_packages("./data/packages")
+        # TODO: load a package list which saves package name/include so we can persist package selection
 
         self.stack.load_views()
         if self.stack.initial_view is None:
@@ -80,6 +97,7 @@ class Game(object):
         sys.exit(-1)
 
     def _load_packages(self, root_path: str):
+        self._packages.clear()
         for file_name in os.listdir(root_path):
             self.log.debug("Attempting to load package from {}", file_name)
             file_path = os.path.join(root_path, file_name)
