@@ -1,6 +1,7 @@
 
 import os
 import os.path
+from rpg import state
 from rpg.data import resources
 from rpg.io import log, package
 from rpg.ui import views
@@ -19,9 +20,8 @@ class Game(object):
         self._return_value = 0  # type: int
         self._initial_view = None  # type: None
 
-        self.resources = resources.Resources()  # type: resources.Resources()
         self.stack = views.ViewManager(self)  # type: views.ViewManager
-        self.state = None  # type: None
+        self.state = state.GameData(self)  # type: state.GameData
         self.log = log.Log("./log.txt", True)  # type: log.Log
 
     def root(self) -> 'Optional[tkinter.Frame]':
@@ -45,11 +45,11 @@ class Game(object):
     def build_resources(self):
         self.log.debug("Building Resources...")
         package_count = 0
-        self.resources.clear()
+        self.state.resources.clear()
         for pkg in self._packages:
             if pkg.include:
                 self.log.debug("   merging '{}'...", pkg.name())
-                err = self.resources.merge(pkg.resources, pkg.dependencies())
+                err = self.state.resources.merge(pkg.resources, pkg.dependencies())
                 if err is not None:
                     self.log.warning("Errors occurred while merging '{}' to master resources collection:\n{}",
                                      pkg.name(), err)
@@ -74,7 +74,7 @@ class Game(object):
         # TODO: load a package list which saves package name/include so we can persist package selection
 
         self.stack.load_views()
-        if self.stack.initial_view is None:
+        if self.stack.initial_view() is None:
             self._abort("No initial view defined")
         self.stack.push(self.stack.initial_view())
 
