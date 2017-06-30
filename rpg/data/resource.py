@@ -1,10 +1,11 @@
 
 from enum import IntEnum, unique
+from rpg.ui import options
 
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
-    from typing import Optional
+    from typing import List, Optional, Tuple
 
 
 @unique
@@ -77,3 +78,34 @@ class Dialog(Displayable):
 
     def options(self, game: 'app.Game'):
         raise NotImplementedError()
+
+
+class BasicLocation(Location):
+    def __init__(self, name_id: str):
+        Location.__init__(self, name_id)
+        self._options = options.OptionList()
+        self._options_locations = options.OptionList()
+        self._options_features = options.OptionList()
+        self._options_npcs = options.OptionList()
+
+    def get_text(self, game: 'app.Game'):
+        raise NotImplementedError()
+
+    def get_options(self, game: 'app.Game'):
+        self._options.clear()
+        locations = self.get_locations(game)
+
+    def get_locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
+        """
+        Get a list of (name, resource_id, minutes) tuples which denote locations that may be traveled to
+        :param game: The game object
+        :return:
+        """
+        return None
+
+    def get_features(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
+        return None
+
+    def get_npcs(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str]]]':
+        return None
+
