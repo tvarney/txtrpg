@@ -6,7 +6,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import resource
-    from rpg.ui import options
+    from rpg.ui import options as _options
     from typing import Dict, List, Optional
 
 
@@ -65,19 +65,18 @@ class GameView(View):
     def __init__(self, game: 'app.Game', name: str):
         View.__init__(self, game, name)
         self._game_view = True
-        self._actor = None  # type: Optional[rpg.data.Actor]
 
     def text_area(self) -> tkinter.Text:
         raise NotImplementedError()
 
-    def display(self, displayable: 'resource.Displayable'):
-        self.set_text(displayable.text(self._game_obj))
-        self.set_options(displayable.options(self._game_obj))
+    def display(self, displayable: 'resource.Displayable', update_statusbar: bool=True):
+        self.set_text(displayable.text(self._game_obj), False)
+        self.set_options(displayable.options(self._game_obj), update_statusbar)
 
-    def set_text(self, text: str):
+    def set_text(self, text: str, update_statusbar: bool=True):
         raise NotImplementedError()
 
-    def set_options(self, options: 'options.OptionList'):
+    def set_options(self, options: '_options.OptionList', update_statusbar: bool=True):
         raise NotImplementedError
 
 
@@ -263,6 +262,7 @@ class NewGameView(View):
         if name == "":
             return
         self._game_obj.stack.push("GameView")
+        self._game_obj.state.start()
 
 
 @view_impl
@@ -294,14 +294,21 @@ class GameViewImpl(GameView):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-    def set_text(self, text: str):
+    def set_text(self, text: str, update_statusbar: bool=True):
         self.txtContent.replace(text)
+        if update_statusbar:
+            self._update_statusbar()
 
-    def set_options(self, option_list: 'options.OptionList'):
+    def set_options(self, option_list: '_options.OptionList', update_statusbar: bool=True):
         if self.frmOptions_Internal is not None:
             self.frmOptions_Internal.grid_remove()
         self.frmOptions_Internal = option_list.generate(self._game_obj, self.frmOptions)
         self.frmOptions_Internal.grid(sticky="NSEW")
+        if update_statusbar:
+            self._update_statusbar()
+
+    def _update_statusbar(self):
+        pass
 
     def text_area(self) -> tkinter.Text:
         return self.txtContent

@@ -53,3 +53,13 @@ class UpdateOptionsEvent(GameEvent):
 
     def apply(self, game: 'app.Game'):
         pass
+
+
+class LocationEvent(GameEvent):
+    def __init__(self, location_id: str, time_delta: int=0):
+        GameEvent.__init__(self)
+        self._location_id = location_id
+        self._time_delta = time_delta
+
+    def apply(self, game: 'app.Game'):
+        game.log.debug("LocationEvent({}, {})", self._location_id, self._time_delta)

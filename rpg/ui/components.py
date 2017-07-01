@@ -6,6 +6,7 @@ from rpg.ui import widgets
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
+    from rpg.data import actor
     from typing import Dict, List, Tuple
 
 
@@ -93,3 +94,13 @@ class StatusBar(tkinter.Frame):
             self._widgets[item] = (lbl, var, variable)
 
         section.pack(side=side)
+
+    def update_actor(self, _actor: 'actor.Actor'):
+        self._widgets[StatusBarItem.Name][2].set(_actor.name())
+        self._widgets[StatusBarItem.Strength][2].set(_actor.stats.strength.string())
+        self._widgets[StatusBarItem.Dexterity][2].set(_actor.stats.dexterity.string())
+        self._widgets[StatusBarItem.Constitution][2].set(_actor.stats.constitution.string())
+        self._widgets[StatusBarItem.Agility][2].set(_actor.stats.agility.string())
+        self._widgets[StatusBarItem.Intelligence][2].set(_actor.stats.intelligence.string())
+        self._widgets[StatusBarItem.Wisdom][2].set(_actor.stats.wisdom.string())
+        self._widgets[StatusBarItem.Charisma][2].set(_actor.stats.charisma.string())

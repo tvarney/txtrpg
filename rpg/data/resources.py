@@ -46,15 +46,18 @@ class Resources(object):
             for key, value in sub_map.items():
                 value._package = package_name
 
-    def enumerate(self):
+    def enumerate(self, resource_type: 'Optional[resource.ResourceType]'=None):
         """
         Create a generator which returns each item in this collection
         :return: A tuple of (ResourceType, str, Resource) for each item in this collection
         """
-        for collection in self._map:
-            for key, value in collection.items():
-                type_id = value.type_id()
-                yield type_id, key, value
+        if resource_type is not None:
+            for key, value in self._map[resource_type].items():
+                yield value.type_id(), key, value
+        else:
+            for collection in self._map:
+                for key, value in collection.items():
+                    yield value.type_id(), key, value
 
     def count(self, t_id: 'Optional[resource.ResourceType]'=None) -> int:
         """

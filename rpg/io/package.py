@@ -143,7 +143,7 @@ class Package(object):
                 _package_obj = getattr(_module, _item_name)
                 if inspect.isclass(_package_obj):
                     _package_cls = _package_obj
-                    if issubclass(type(_package_cls), resource.Resource):
+                    if issubclass(_package_cls, resource.Resource):
                         try:
                             _package_obj = _package_cls()
                             self.resources.add(_package_obj)

@@ -6,7 +6,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.ui import views
-    from typing import Any, Dict, Optional
+    from typing import Any, Dict, Optional, Tuple
 
 
 @unique
@@ -32,6 +32,18 @@ class GameData(object):
         self.variables = dict()  # type: Dict[str, Any]
         self.temp = dict()  # type: Dict[str, Any]
 
+    def start(self):
+        self.location = None
+        self.fight = None
+        self.dialog = None
+
+        r_type = resource.ResourceType.Callback
+        for _, _, callback in self.resources.enumerate(r_type):  # type: Tuple[resource.Callback]
+            callback.apply(self._game_object)
+
+        if self.location is None:
+            self._game_object.log.error("No initial location set by start callbacks")
+
     def set_location(self, location_id: str):
         """
         Attempt to change the current location to the location denoted by the given resource_id
@@ -46,7 +58,7 @@ class GameData(object):
         self._add_loc_text = True
         self.location.start(self._game_object)
         # Only display if the current state is GameState.Location and our instance is the correct instance
-        if self._state == GameState.Location and instance == self._state:
+        if self.location and self._state == GameState.Location and instance is self.location:
             self._display(self.location)
 
     def set_dialog(self, dialog_id: str):
