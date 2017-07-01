@@ -1,11 +1,12 @@
 
 import inspect
 import tkinter
+from rpg import event
 from rpg.ui import widgets
 
 import typing
 if typing.TYPE_CHECKING:
-    from rpg import app, event
+    from rpg import app
     from typing import List, Optional, Tuple, Union
 
 

@@ -4,7 +4,7 @@ import inspect
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
-    from rpg.ui import options
+    from rpg.ui import options, views
     from typing import Callable, List
 
 
@@ -52,7 +52,9 @@ class UpdateOptionsEvent(GameEvent):
         self._option_list = option_list
 
     def apply(self, game: 'app.Game'):
-        pass
+        if game.stack.current().is_game_view():
+            gv = game.stack.current()  # type: views.GameView
+            gv.set_options(self._option_list)
 
 
 class LocationEvent(GameEvent):
@@ -62,4 +64,4 @@ class LocationEvent(GameEvent):
         self._time_delta = time_delta
 
     def apply(self, game: 'app.Game'):
-        game.log.debug("LocationEvent({}, {})", self._location_id, self._time_delta)
+        game.state.set_location(self._location_id)
