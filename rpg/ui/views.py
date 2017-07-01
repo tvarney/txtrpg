@@ -241,7 +241,9 @@ class NewGameView(View):
 
         self.frmContent = tkinter.Frame(self)
         self.entryName = widgets.LabeledEntry(self.frmContent, "Name")
-        self.entryName.pack(side="left")
+        self.frmStats = components.AttributeEditorFrame(self.frmContent, 20)
+        self.entryName.pack(side="top", anchor=tkinter.W)
+        self.frmStats.pack(side='top', anchor=tkinter.W)
         self.frmContent.pack(side='top', fill='both', expand=True, anchor="n")
 
         self.frmNavigation = tkinter.Frame(self)
@@ -263,6 +265,7 @@ class NewGameView(View):
             return
         self._game_obj.stack.push("GameView")
         self._game_obj.state.player.name(self.entryName.entry.get())
+        self.frmStats.write(self._game_obj.state.player)
         self._game_obj.state.start()
 
 

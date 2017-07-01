@@ -24,7 +24,8 @@ class Actor(object):
 class Player(Actor):
     def __init__(self):
         Actor.__init__(self, "", None, None)
-        self._inventory = None
+        self.attribute_points = 0  # type: int
+        self.inventory = None
 
 
 class NonPlayerCharacter(Actor):
