@@ -104,3 +104,7 @@ class StatusBar(tkinter.Frame):
         self._widgets[StatusBarItem.Intelligence][2].set(_actor.stats.intelligence.string())
         self._widgets[StatusBarItem.Wisdom][2].set(_actor.stats.wisdom.string())
         self._widgets[StatusBarItem.Charisma][2].set(_actor.stats.charisma.string())
+        self._widgets[StatusBarItem.Luck][2].set(_actor.stats.luck.string())
+        self._widgets[StatusBarItem.Health][2].set(_actor.stats.health.string())
+        self._widgets[StatusBarItem.Mana][2].set(_actor.stats.mana.string())
+        self._widgets[StatusBarItem.Stamina][2].set(_actor.stats.stamina.string())

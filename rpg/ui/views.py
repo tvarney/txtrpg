@@ -262,6 +262,7 @@ class NewGameView(View):
         if name == "":
             return
         self._game_obj.stack.push("GameView")
+        self._game_obj.state.player.name(self.entryName.entry.get())
         self._game_obj.state.start()
 
 
@@ -308,7 +309,7 @@ class GameViewImpl(GameView):
             self._update_statusbar()
 
     def _update_statusbar(self):
-        pass
+        self.frmStatus.update_actor(self._game_obj.state.player)
 
     def text_area(self) -> tkinter.Text:
         return self.txtContent

@@ -12,7 +12,9 @@ class Actor(object):
         self._race = race
         self.stats = stats if stats is not None else attributes.AttributeList()
 
-    def name(self) -> str:
+    def name(self, new_name: 'Optional[str]'=None) -> str:
+        if new_name is not None:
+            self._name = new_name
         return self._name
 
     def race(self) -> None:
