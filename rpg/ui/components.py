@@ -210,3 +210,4 @@ class AttributeEditorFrame(tkinter.Frame):
         _actor.stats.wisdom.level_up(self._frmWisdom.value.get() - _actor.stats.wisdom.value())
         _actor.stats.charisma.level_up(self._frmCharisma.value.get() - _actor.stats.charisma.value())
         _actor.stats.luck.level_up(self._frmLuck.value.get() - _actor.stats.luck.value())
+        _actor.calculate_secondaries()

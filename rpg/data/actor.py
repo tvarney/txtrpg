@@ -27,6 +27,19 @@ class Player(Actor):
         self.attribute_points = 0  # type: int
         self.inventory = None
 
+    def calculate_secondaries(self):
+        current_health = self.stats.health.level()
+        new_health = self.stats.constitution.level() * 3 + self.stats.strength.level() * 7
+        self.stats.health.level_up(new_health - current_health)
+
+        current_stamina = self.stats.stamina.level()
+        new_stamina = self.stats.constitution.level() * 7 + self.stats.agility.level() * 3
+        self.stats.stamina.level_up(new_stamina - current_stamina)
+
+        current_mana = self.stats.mana.level()
+        new_mana = self.stats.intelligence.level() * 7 + self.stats.wisdom.level() * 3
+        self.stats.mana.level_up(new_mana - current_mana)
+
 
 class NonPlayerCharacter(Actor):
     def __init__(self, name: str, race: None=None, stats: 'Optional[attributes.AttributeList]'=None):
