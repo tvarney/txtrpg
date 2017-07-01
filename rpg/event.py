@@ -44,7 +44,7 @@ class CompoundEvent(GameEvent):
 
 class OptionListReturnEvent(GameEvent):
     def apply(self, game: 'app.Game'):
-        pass
+        game.state.resume_display()
 
 
 class UpdateOptionsEvent(GameEvent):

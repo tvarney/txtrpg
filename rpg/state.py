@@ -83,6 +83,21 @@ class GameData(object):
         view = self._game_object.stack.current()  # type: views.GameView
         return view if view.is_game_view() else None
 
+    def state(self) -> GameState:
+        """
+        :return: The current state of the game
+        """
+        return self._state
+
+    def resume_display(self):
+        if self._state == GameState.Location:
+            self._display(self.location)
+        elif self._state == GameState.Dialog:
+            self._display(self.dialog)
+        else:
+            self._game_object.log.error("GameData::resume_display(): Can not resume display for state {}",
+                                        self._state.name)
+
     def _display(self, displayable: 'resource.Displayable'):
         """
         Display the given Displayable resource if the current View is the GameView
