@@ -322,3 +322,15 @@ class GameViewImpl(GameView):
 
     def resume(self):
         self.start()
+
+
+@view_impl
+class FightView(View):
+    def __init__(self, game: 'app.Game'):
+        View.__init__(self, game, "FightView")
+
+
+@view_impl
+class InventoryView(View):
+    def __init__(self, game: 'app.Game'):
+        View.__init__(self, game, "InventoryView")

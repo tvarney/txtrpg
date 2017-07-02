@@ -2,6 +2,7 @@
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum, unique
 from rpg import event
+from rpg.data import actor, attributes
 from rpg.ui import options as _options
 
 import typing
@@ -51,6 +52,33 @@ class Callback(Resource):
     @abstractmethod
     def apply(self, game: 'app.Game'):
         raise NotImplementedError()
+
+
+class MonsterTemplate(Resource):
+    def __init__(self, resource_id: str, name: str, **kwargs):
+        Resource.__init__(self, ResourceType.Monster, resource_id)
+        self._name = name
+        
+        self._strength = kwargs.get("str", 10)
+        self._dexterity = kwargs.get("dex", 10)
+        self._constitution = kwargs.get("con", 10)
+        self._agility = kwargs.get("agl", 10)
+        self._intelligence = kwargs.get("int", 10)
+        self._wisdom = kwargs.get("cha", 10)
+        self._charisma = kwargs.get("cha", 10)
+        self._luck = kwargs.get("lck", 10)
+        
+        self._health = kwargs.get("health", 100)
+        self._mana = kwargs.get("mana", 100)
+        self._stamina = kwargs.get("stamina", 100)
+    
+    def generate(self) -> 'actor.Monster':
+        _ability_scores = attributes.AttributeList(str=self._strength, dex=self._dexterity, con=self._constitution,
+                                                   agl=self._agility, int=self._intelligence, wis=self._wisdom,
+                                                   cha=self._charisma, lck=self._luck, health=self._health,
+                                                   stamina=self._stamina, mana=self._mana)
+        _monster = actor.Monster(self._name, None, _ability_scores)
+        return _monster
 
 
 class Displayable(Resource):
