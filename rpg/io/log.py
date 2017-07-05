@@ -8,6 +8,11 @@ if typing.TYPE_CHECKING:
 
 @unique
 class LogLevel(IntEnum):
+
+    """Level descriptor for logging operations.
+
+    """
+
     Debug = 0
     Info = 1
     Warning = 2
@@ -16,8 +21,14 @@ class LogLevel(IntEnum):
 
 
 class Log(object):
-    def __init__(self, file_path: str, echo: bool=False, level: LogLevel=LogLevel.Info):
-        """
+
+    """Wrapper around a file object which tracks a log level
+
+    """
+
+    def __init__(self, file_path: str, echo: bool=False, level: LogLevel=LogLevel.Info) -> None:
+        """Initialize the Log object
+
         :param file_path: The path name of the log file to write to
         :param echo: If this log should echo statements to standard output
         :param level: The logging level threshold
@@ -28,34 +39,42 @@ class Log(object):
         self._fp = None
 
     def level(self, level: 'Optional[LogLevel]'=None) -> LogLevel:
+        """Get the logging level, optionally changing it.
+
+        :param level: The logging level to set this log object to, or None to leave it the same
+        :return: The logging level after optionally changing it
+        """
         if level is not None:
             self._level = level
         return self._level
 
     def echo(self, on: 'Optional[bool]'=None) -> bool:
+        """Get if this Log is echoing output to stdout, optionally changing said behaviour.
+
+        :param on: If echoing should be performed, otherwise None to leave behaviour the same
+        :return: If this Log object echos messages to stdout
+        """
         if on is not None:
             self._echo = on
         return self._echo
 
-    def open(self, append: bool=True):
-        """
-        Open the log file for writing
+    def open(self, append: bool=True) -> None:
+        """Open the log file for writing.
+
         :param append: If the log file should be opened for appending
         """
         if self._fp is None:
             self._fp = open(self._file_path, "a" if append else "w")
 
-    def close(self):
-        """
-        Close the log file
-        """
+    def close(self) -> None:
+        """Close the log file"""
         if self._fp is not None:
             self._fp.close()
             self._fp = None
 
     def write(self, level: LogLevel, message: str, *args, **kwargs) -> bool:
-        """
-        Write a log statement with the given level. If the level is less than the current log level nothing is written
+        """Write a log statement with the given level if that level is at least the current log level.
+
         :param level: The logging level of this message
         :param message: The message to write
         :param args: positional arguments to format into the message
@@ -75,8 +94,8 @@ class Log(object):
         return wrote_message
 
     def debug(self, message: str, *args, **kwargs) -> bool:
-        """
-        Write a debug message to this log object
+        """Write a debug message to this log object.
+
         :param message: The message to write
         :param args: positional arguments to format into the message
         :param kwargs: keyword arguments to format into the message
@@ -85,8 +104,8 @@ class Log(object):
         return self.write(LogLevel.Debug, message, *args, **kwargs)
 
     def info(self, message: str, *args, **kwargs) -> bool:
-        """
-        Write an informational message to this log object
+        """Write an informational message to this log object.
+
         :param message: The message to write
         :param args: positional arguments to format into the message
         :param kwargs: keyword arguments to format into the message
@@ -95,8 +114,8 @@ class Log(object):
         return self.write(LogLevel.Info, message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs) -> bool:
-        """
-        Write a warning message to this log object
+        """Write a warning message to this log object.
+
         :param message: The message to write
         :param args: positional arguments to format into the message
         :param kwargs: keyword arguments to format into the message
@@ -105,8 +124,8 @@ class Log(object):
         return self.write(LogLevel.Warning, message, *args, **kwargs)
 
     def error(self, message: str, *args, **kwargs) -> bool:
-        """
-        Write an error message to this log object
+        """Write an error message to this log object.
+
         :param message: The message to write
         :param args: positional arguments to format into the message
         :param kwargs: keyword arguments to format into the message
@@ -115,8 +134,8 @@ class Log(object):
         return self.write(LogLevel.Error, message, *args, **kwargs)
 
     def fatal(self, message: str, *args, **kwargs) -> bool:
-        """
-        Write a fatal error message to this log object
+        """Write a fatal error message to this log object.
+
         :param message: The message to write
         :param args: positional arguments to format into the message
         :param kwargs: keyword arguments to format into the message

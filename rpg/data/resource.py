@@ -116,7 +116,7 @@ class MonsterTemplate(Resource):
 
     """
 
-    def __init__(self, resource_id: str, name: str, **kwargs):
+    def __init__(self, resource_id: str, name: str, **kwargs) -> None:
         """Create a new MonsterTemplate instance.
 
         Keyword arguments to this function may be any of the following:
@@ -190,7 +190,7 @@ class Displayable(Resource):
 
     """
 
-    def __init__(self, type_id: ResourceType, resource_id: str):
+    def __init__(self, type_id: ResourceType, resource_id: str) -> None:
         """Create a new Displayable instance.
 
         The Displayable class is not a valid Resource type in and of itself; sub-classes of the Displayable class should
@@ -243,44 +243,120 @@ class Displayable(Resource):
 
 
 class Location(Displayable):
-    def __init__(self, resource_id: str):
+
+    """Abstract base class of all Location objects.
+
+    A location object represents the current part of the game world that the player is in. These are further divided
+    down into actual Locations and 'Features'. A feature is generally used for parts of the parent location which either
+    take no time or very little time to travel to. Features can be things like shops, houses, alleyways, etc.
+
+    There are further subclasses of Location which simplify the process of creating a Location by standardizing on how
+    the data the location holds and how it displays it, though it is a perfectly valid method to provide subclasses of
+    the base Location class.
+
+    """
+
+    def __init__(self, resource_id: str) -> None:
+        """Initialize the Location instance.
+
+        :param resource_id: The unique id string used to look this location up
+        """
         Displayable.__init__(self, ResourceType.Location, resource_id)
 
     @abstractmethod
     def text(self, game: 'app.Game') -> str:
+        """Get the text to display for this Location.
+
+        :param game: The app.Game instance displaying this Location
+        :return: The text to display for this Location
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def options(self, game: 'app.Game') -> '_options.OptionList':
+        """Get the OptionList used to set the options for this Location.
+
+        :param game: The app.Game instance displaying this Location
+        :return: An OptionList instance denoting the options available at this Location
+        """
         raise NotImplementedError()
 
 
 class Dialog(Displayable):
-    def __init__(self, resource_id: str):
+
+    """Base class for resources representing narration or conversations.
+
+    This class is used to provide extra narration at a Location or to handle conversations.
+
+    """
+
+    def __init__(self, resource_id: str) -> None:
+        """Initialize the Dialog instance.
+
+        :param resource_id: The unique id string used to look this dialog up
+        """
         Displayable.__init__(self, ResourceType.Dialog, resource_id)
 
     @abstractmethod
     def text(self, game: 'app.Game') -> str:
+        """Get the text to display for this Dialog.
+
+        :param game: The app.Game instance displaying this Dialog
+        :return: The text to display for this Dialog
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def options(self, game: 'app.Game') -> '_options.OptionList':
+        """Get the OptionList used to set the options for this Dialog.
+
+        :param game: The app.Game instance displaying this Dialog
+        :return: An OptionList instance denoting the options available for this Dialog
+        """
         raise NotImplementedError()
 
 
 class BasicLocation(Location):
-    def __init__(self, name_id: str):
+
+    """Specialization of the Location class to provide a standard interface to most locations.
+
+    The BasicLocation class defines the concept of a Location providing links to other locations, a collection of
+    'features' or sub-locations of this location, and non-player characters.
+
+    These methods are all marked abstract and left to the implementation to provide.
+
+    """
+
+    def __init__(self, name_id: str) -> None:
+        """Initialize the BasicLocation instance.
+
+        :param name_id: The unique id used to look this location up
+        """
         Location.__init__(self, name_id)
-        self._options = _options.OptionList()
-        self._options_locations = _options.OptionList()
-        self._options_features = _options.OptionList()
-        self._options_npcs = _options.OptionList()
+        self._options = _options.OptionList()  # type: _options.OptionList
+        self._options_locations = _options.OptionList()  # type: _options.OptionList
+        self._options_features = _options.OptionList()  # type: _options.OptionList
+        self._options_npcs = _options.OptionList()  # type: _options.OptionList
 
     @abstractmethod
     def text(self, game: 'app.Game'):
+        """Get the text to display for this location.
+
+        :param game: The app.Game instance displaying this location
+        :return: The text to display for this location
+        """
         raise NotImplementedError()
 
     def options(self, game: 'app.Game') -> '_options.OptionList':
+        """Get the OptionList instance used to set the options for this location.
+
+        This method uses the OptionList.generate_paged_list() method to create standard options for travel locations,
+        feature locations, and NPCs present at the location. If the resepctive method returns None, then that button is
+        not created.
+
+        :param game: The app.Game instance displaying this location
+        :return: An OptionList instance denoting options for this location
+        """
         self._options.clear()
         _locations = self.locations(game)
         if _locations:
@@ -312,8 +388,8 @@ class BasicLocation(Location):
 
     @abstractmethod
     def locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
-        """
-        Get a list of (name, resource_id, minutes) tuples which denote locations that may be traveled to
+        """Get a list of (name, resource_id, minutes) tuples which denote locations that may be traveled to.
+
         :param game: The game object
         :return: A list of possible locations to travel to from this location
         """
@@ -321,8 +397,8 @@ class BasicLocation(Location):
 
     @abstractmethod
     def features(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
-        """
-        Get a list of (name, resource_id, minutes) tuples which denote features within this location
+        """Get a list of (name, resource_id, minutes) tuples which denote features within this location.
+
         :param game: The game object
         :return: A list of possible sub-locations to visit at this location
         """
@@ -330,8 +406,8 @@ class BasicLocation(Location):
 
     @abstractmethod
     def npcs(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str]]]':
-        """
-        Get a list of (name, resource_id) tuples which denote npcs at this location
+        """Get a list of (name, resource_id) tuples which denote npcs at this location.
+
         :param game: The game object
         :return: A list of npcs at this location
         """
@@ -339,18 +415,56 @@ class BasicLocation(Location):
 
 
 class BasicLocationImpl(BasicLocation):
-    def __init__(self, name_id: str):
+
+    """A subclass of BasicLocationImpl which provides default methods for the BasicLocation API.
+
+    """
+
+    def __init__(self, name_id: str) -> None:
+        """Initialize the BasicLocationImpl instance.
+
+        :param name_id: The unique id of this BasicLocationImpl
+        """
         BasicLocation.__init__(self, name_id)
 
     @abstractmethod
     def text(self, game: 'app.Game') -> str:
+        """Get the text to display for this location.
+
+        :param game: The app.Game instance displaying this location
+        :return: The text to display for this location
+        """
         raise NotImplementedError()
 
     def locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
+        """Get the locations which may be traveled to from this location.
+
+        If not overloaded by a subclass, this method just returns None. This allows locations which don't provide travel
+        options to just ignore this method.
+
+        :param game: The app.Game instance displaying this location
+        :return: A list of locations which may be traveled to, or None
+        """
         return None
 
     def features(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
+        """Get the feature locations which may be visited from this location.
+
+        If not overloaded by a subclass, this method just returns None. This allows locations which don't provide
+        features to visit to just ignore this method.
+
+        :param game: The app.Game instance displaying this location
+        :return: A list of locations which may be visited at this location, or None
+        """
         return None
 
     def npcs(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str]]]':
+        """Get the npcs who are present at this location.
+
+        If not overloaded by a subclass, this method just returns None. This allows locations which don't provide NPCs
+        to just ignore this method.
+
+        :param game:
+        :return:
+        """
         return None

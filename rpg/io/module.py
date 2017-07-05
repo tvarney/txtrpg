@@ -11,8 +11,8 @@ if typing.TYPE_CHECKING:
 
 
 def parse_name(path: str, root: 'Optional[str]'=None) -> str:
-    """
-    Generate a name for a python module based on the given path
+    """Generate a name for a python module based on the given path.
+
     :param path: The path to parse into a name
     :param root: A root path for this file
     :return: A name for a python module at the given path
@@ -22,8 +22,8 @@ def parse_name(path: str, root: 'Optional[str]'=None) -> str:
 
 
 def load_from_file(path: str, root: 'Optional[str]'=None, name: 'Optional[str]'=None) -> 'ModuleType':
-    """
-    Load a module from the filesystem and return its module object
+    """Load a module from the filesystem and return its module object.
+
     :param path: The path to the module file
     :param root: The root path to ignore - used when naming the module
     :param name: The name of the module; see module.parse_name()
@@ -44,8 +44,8 @@ def load_from_file(path: str, root: 'Optional[str]'=None, name: 'Optional[str]'=
 
 
 def reload(module_obj: 'ModuleType') -> 'ModuleType':
-    """
-    Reload a module which has already been loaded
+    """Reload a module which has already been loaded.
+
     :param module_obj: The module object to reload
     :return: A reference to the module after re-loading it
     """
