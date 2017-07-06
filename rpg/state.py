@@ -1,4 +1,11 @@
 
+"""Classes used for tracking game state.
+
+The game state is defined as all the data which is being used by the game itself. This excludes things like the
+package listing, the logging class, and various other bits defined in the rpg.app.Game class.
+
+"""
+
 from enum import IntEnum, unique
 from rpg.data import actor, resource, resources
 
@@ -11,6 +18,11 @@ if typing.TYPE_CHECKING:
 
 @unique
 class GameState(IntEnum):
+
+    """Enumeration which tracks the current state of the GameData class.
+
+    """
+
     Stopped = 0
     Location = 1
     Dialog = 2
@@ -18,7 +30,19 @@ class GameState(IntEnum):
 
 
 class GameData(object):
-    def __init__(self, game_object: 'app.Game'):
+
+    """Collection of data which can be thought of as the games state.
+
+    The GameData class can be thought of as the game state for a particular instance of the game. This is the object
+    which can be loaded and saved to files more or less completely to implement a save game feature.
+
+    """
+
+    def __init__(self, game_object: 'app.Game') -> None:
+        """Initialize the GameData instance
+
+        :param game_object: The app.Game instance holding this GameData instance
+        """
         self._game_object = game_object  # type: app.Game
         self._state = GameState.Stopped  # type: GameState
         self._add_loc_text = False  # type: bool
@@ -32,7 +56,8 @@ class GameData(object):
         self.variables = dict()  # type: Dict[str, Any]
         self.temp = dict()  # type: Dict[str, Any]
 
-    def start(self):
+    def start(self) -> None:
+        """Set the current location, fight, and dialog to None and then apply all callbacks."""
         self.location = None
         self.fight = None
         self.dialog = None
@@ -44,9 +69,9 @@ class GameData(object):
         if self.location is None:
             self._game_object.log.error("No initial location set by start callbacks")
 
-    def set_location(self, location_id: str):
-        """
-        Attempt to change the current location to the location denoted by the given resource_id
+    def set_location(self, location_id: str) -> None:
+        """Attempt to change the current location to the location denoted by the given resource_id.
+
         :param location_id: The resource_id of the new location
         """
         instance = self.resources.get(resource.ResourceType.Location, location_id)
@@ -61,9 +86,9 @@ class GameData(object):
         if self.location and self._state == GameState.Location and instance is self.location:
             self._display(self.location)
 
-    def set_dialog(self, dialog_id: str):
-        """
-        Attempt to set the current dialog to the one denoted by the given resource id
+    def set_dialog(self, dialog_id: str) -> None:
+        """Attempt to set the current dialog to the one denoted by the given resource id.
+
         :param dialog_id: The resource id of the dialog to switch to
         """
         instance = self.resources.get(resource.ResourceType.Dialog, dialog_id)
@@ -76,20 +101,25 @@ class GameData(object):
             self._display(self.dialog)
 
     def game_view(self) -> 'Optional[views.GameView]':
-        """
-        Get the GameView instance, assuming it is the current view
+        """Get the GameView instance, assuming it is the current view.
+
         :return: The current view as a GameView, assuming it implements the GameView interface
         """
         view = self._game_object.stack.current()  # type: views.GameView
         return view if view.is_game_view() else None
 
     def state(self) -> GameState:
-        """
+        """Get the GameState value representing the current state of the game.
+
         :return: The current state of the game
         """
         return self._state
 
-    def resume_display(self):
+    def resume_display(self) -> None:
+        """Force the current displayable to be redisplayed.
+
+        Which displayable is displayed is dependent on the current state of the game.
+        """
         if self._state == GameState.Location:
             self._display(self.location)
         elif self._state == GameState.Dialog:
@@ -99,8 +129,8 @@ class GameData(object):
                                         self._state.name)
 
     def _display(self, displayable: 'resource.Displayable'):
-        """
-        Display the given Displayable resource if the current View is the GameView
+        """Display the given Displayable resource if the current View is the GameView.
+
         :param displayable: The displayable to display
         """
         # Technically, this annotation can be wrong; when it is though, we don't do anything

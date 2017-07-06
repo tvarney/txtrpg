@@ -1,4 +1,12 @@
 
+"""Composite widget definitions.
+
+This module defines composite tkinter widgets. These are more complicated than those found in the rpg.ui.widgets module.
+In general, these define a logical grouping of widgets which have a very narrow focus (such as a menu bar or status
+bar).
+
+"""
+
 from enum import IntEnum, unique
 import tkinter
 from rpg.ui import widgets
@@ -7,14 +15,18 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import actor
-    from typing import Dict, List, Tuple
+    from typing import Dict, List, Optional, Tuple
 
 
 class RootMenuBar(tkinter.Menu):
+    """The root menu bar for the main window.
+
     """
-    The root menu bar for the main window
-    """
-    def __init__(self, game_obj: 'app.Game'):
+    def __init__(self, game_obj: 'app.Game') -> None:
+        """Initialize the RootMenuBar instance.
+
+        :param game_obj: The app.Game object this menu bar is attached to
+        """
         tkinter.Menu.__init__(self, game_obj.root())
         self._game_obj = game_obj
 
@@ -26,21 +38,25 @@ class RootMenuBar(tkinter.Menu):
         self.file_menu.add_command(label="Exit", command=self._action_exit)
         self.add_cascade(label="File", menu=self.file_menu)
 
-    def _action_save(self):
+    def _action_save(self) -> None:
         self._game_obj.log.debug("RootMenuBar::_action_save(): Called")
 
-    def _action_load(self):
+    def _action_load(self) -> None:
         self._game_obj.log.debug("RootMenuBar::_action_load(): Called")
 
-    def _action_exit(self):
+    def _action_exit(self) -> None:
         self._game_obj.log.debug("RootMenuBar::_action_exit(): Called")
 
-    def _action_options(self):
+    def _action_options(self) -> None:
         self._game_obj.log.debug("RootMenuBar::_action_options(): Called")
 
 
 @unique
 class StatusBarItem(IntEnum):
+    """Index for each of the items in the StatusBar component.
+
+    """
+
     Name = 0
     Strength = 1
     Dexterity = 2
@@ -60,8 +76,24 @@ class StatusBarItem(IntEnum):
     Date = 16
 
 
+# TODO: Make the StatusBar class more generally accessible to data packages
+#     : If a package adds a variable (stored generally in rpg.state.GameData.variables) that should be displayed
+#     : there should be some method for the package to hook into the StatusBar and add new sections/fields
 class StatusBar(tkinter.Frame):
-    def __init__(self, root: tkinter.Frame, *args, **kwargs):
+
+    """A tkinter.Frame holding a collection of status display widgets for actor instances.
+
+    This component is intended to display the attributes of the player actor.
+
+    """
+
+    def __init__(self, root: tkinter.Frame, *args, **kwargs) -> None:
+        """Initialize and layout the StatusBar.
+
+        :param root: The root frame that this StatusBar is to be added to
+        :param args: Extra arguments for the main frame
+        :param kwargs: Keyword arguments for the main frame
+        """
         tkinter.Frame.__init__(self, root, *args, **kwargs)
         self._font_name = ('Arial', 10, 'bold')
         self._font_header = ('Arial', 9, 'bold')
@@ -80,7 +112,13 @@ class StatusBar(tkinter.Frame):
         self._add_section("Advancement", [StatusBarItem.Level, StatusBarItem.Exp, StatusBarItem.Money])
         self._add_section("World", [StatusBarItem.Time, StatusBarItem.Date])
 
-    def _add_section(self, header_text: str, items: 'List[StatusBarItem]', side: str=tkinter.TOP):
+    def _add_section(self, header_text: str, items: 'List[StatusBarItem]', side: str=tkinter.TOP) -> None:
+        """Add a section to the StatusBar.
+
+        :param header_text: The text of the header
+        :param items: The list of items to add to this section
+        :param side: How to lay this section out
+        """
         section = tkinter.Frame(self)
         lbl = tkinter.Label(section, text=header_text, font=self._font_header)
         lbl.grid(row=0, column=0, columnspan=2, sticky='WE')
@@ -95,7 +133,11 @@ class StatusBar(tkinter.Frame):
 
         section.pack(side=side)
 
-    def update_actor(self, _actor: 'actor.Actor'):
+    def update_actor(self, _actor: 'actor.Actor') -> None:
+        """Update the actor attribute fields.
+
+        :param _actor: The actor to get values from
+        """
         self._widgets[StatusBarItem.Name][2].set(_actor.name())
         self._widgets[StatusBarItem.Strength][2].set(_actor.stats.strength.string())
         self._widgets[StatusBarItem.Dexterity][2].set(_actor.stats.dexterity.string())
@@ -111,8 +153,28 @@ class StatusBar(tkinter.Frame):
 
 
 class AttributeWidget(tkinter.Frame):
-    def __init__(self, root: 'tkinter.Frame', name: str, points: 'tkinter.IntVar', initial_value: int=10, min_value: int=8,
-                 max_value: int=18):
+
+    """Widget for editing an attribute of an actor.
+
+    This widget is used by the AttributeEditorFrame to implement character attribute improvements.
+
+    """
+
+    def __init__(self, root: 'tkinter.Frame', name: str, points: 'tkinter.IntVar', initial_value: int=10,
+                 min_value: int=8, max_value: int=18) -> None:
+        """Initialize the AttributeWidget.
+
+        For initial set-up, the default minimum value of 8 should be used. For level-up attribute changes, the min_value
+        argument should be equal to the initial_value argument; this keeps the player from lowering an attribute on
+        level up to get more points.
+
+        :param root: The root frame to place this AttributeWidget in
+        :param name: The name of the attribute
+        :param points: The tkinter.IntVar used to track how many points may be spent
+        :param initial_value: The starting value of the attribute
+        :param min_value: The lowest this AttributeWidget will let the tracked value go
+        :param max_value: The maximum this AttributeWidget will let the tracked value go
+        """
         tkinter.Frame.__init__(self, root)
         self.value = tkinter.IntVar(self, initial_value)
         self._point_var = points
@@ -131,28 +193,37 @@ class AttributeWidget(tkinter.Frame):
         self._lblDisplay.pack(side='top')
         self._btnDecrease.pack(side='top')
 
-    def update_value(self, value: int, min_value: int=8, max_value: int=18):
+    def update_value(self, value: int, min_value: 'Optional[int]'=None, max_value: 'Optional[int]'=None) -> None:
+        """Change the initial_value, min_value, and max_value arguments of this AttributeWidget.
+
+        :param value: The new value/initial value of the widget
+        :param min_value: The new minimum value of the widget (use None to keep the old value)
+        :param max_value: The new maximum value of the widget (use None to keep the old value)
+        :return:
+        """
         self.value.set(value)
         self._initial_value = value
-        self._min_value = min_value
-        self._max_value = max_value
+        self._min_value = min_value if min_value is not None else self._min_value
+        self._max_value = max_value if max_value is not None else self._max_value
 
-    def reset_value(self):
+    def reset_value(self) -> None:
+        """Reset the value of this widget to the initial value, refunding any points spent."""
         diff = self.value.get() - self._initial_value
         self._point_var.set(self._point_var.get() + diff)
         self.value.set(self._initial_value)
 
-    def save_value(self):
+    def save_value(self) -> None:
+        """Set the initial value to the current value."""
         self._initial_value = self.value.get()
 
-    def _action_inc(self):
+    def _action_inc(self) -> None:
         _value = self.value.get()
         _points = self._point_var.get()
         if _points > 0 and _value < self._max_value:
             self.value.set(_value + 1)
             self._point_var.set(_points - 1)
 
-    def _action_dec(self):
+    def _action_dec(self) -> None:
         _value = self.value.get()
         if _value > self._min_value:
             self.value.set(_value - 1)
@@ -160,7 +231,19 @@ class AttributeWidget(tkinter.Frame):
 
 
 class AttributeEditorFrame(tkinter.Frame):
-    def __init__(self, root: 'tkinter.Frame', initial_points: int):
+
+    """Frame which aggregates AttributeWidgets for each attribute a player may edit.
+
+    This component also initializes the shared tkinter.IntVar for the points that each AttributeWidget requires.
+
+    """
+
+    def __init__(self, root: 'tkinter.Frame', initial_points: int) -> None:
+        """Initialize the AttributeEditorFrame.
+
+        :param root: The root tkinter.Frame to place this AttributeEditorFrame in
+        :param initial_points: How many attribute points are available
+        """
         tkinter.Frame.__init__(self, root)
         self._points = tkinter.IntVar(self, initial_points)
 
@@ -189,7 +272,11 @@ class AttributeEditorFrame(tkinter.Frame):
         self._frmCharisma.grid(row=1, column=6)
         self._frmLuck.grid(row=1, column=7)
 
-    def read(self, _actor: 'actor.Player'):
+    def read(self, _actor: 'actor.Player') -> None:
+        """Set the AttributeWidget values to the Attribute levels of the given player
+
+        :param _actor: The actor.Player instance to use for values
+        """
         self._points.set(_actor.attribute_points)
         self._frmStrength.value.set(_actor.stats.strength.value())
         self._frmDexterity.value.set(_actor.stats.dexterity.value())
@@ -200,7 +287,11 @@ class AttributeEditorFrame(tkinter.Frame):
         self._frmCharisma.value.set(_actor.stats.charisma.value())
         self._frmLuck.value.set(_actor.stats.luck.value())
 
-    def write(self, _actor: 'actor.Player'):
+    def write(self, _actor: 'actor.Player') -> None:
+        """Set the Attribute levels of the given player to the values in the AttributeWidgets.
+
+        :param _actor: The actor.Player instance to set values on
+        """
         _actor.attribute_points = self._points.get()
         _actor.stats.strength.level_up(self._frmStrength.value.get() - _actor.stats.strength.value())
         _actor.stats.dexterity.level_up(self._frmDexterity.value.get() - _actor.stats.dexterity.value())

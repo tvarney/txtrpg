@@ -1,4 +1,8 @@
 
+"""Definition of the main Game controller class.
+
+"""
+
 import os
 import os.path
 from rpg import state
@@ -10,11 +14,24 @@ import tkinter
 
 import typing
 if typing.TYPE_CHECKING:
-    from typing import List, Optional
+    from typing import List, Optional, TypeVar
+    NoReturn = TypeVar(None)
 
 
 class Game(object):
+
+    """The main Game application definition.
+
+    This class controls the application lifetime and can be used to access various parts of the application.
+
+    """
+
     def __init__(self):
+        """Initialize the Game app.
+
+        This does not initialize the tkinter.Tk() root, but sets up the various objects that the application needs.
+
+        """
         self._root = None  # type: Optional[tkinter.Tk]
         self._packages = list()  # type: List[package.Package]
         self._return_value = 0  # type: int
@@ -25,13 +42,15 @@ class Game(object):
         self.log = log.Log("./log.txt", True)  # type: log.Log
 
     def root(self) -> 'Optional[tkinter.Frame]':
-        """Get the root tkinter frame
+        """Get the root tkinter frame.
+
         :return: The tkinter root window if initialized or None
         """
         return self._root
 
-    def quit(self, return_value: int=0):
-        """Destroy the tkinter window and exit the application
+    def quit(self, return_value: int=0) -> None:
+        """Destroy the tkinter window and exit the application.
+
         :param return_value: The return value to quit with
         """
         if self._root:
@@ -42,7 +61,8 @@ class Game(object):
             root.destroy()
             self._return_value = return_value
 
-    def build_resources(self):
+    def build_resources(self) -> int:
+        """Merges resources from all selected packages into the self.state.resources Resources collection."""
         self.log.debug("Building Resources...")
         package_count = 0
         self.state.resources.clear()
@@ -55,9 +75,11 @@ class Game(object):
                                      pkg.name(), err)
                 package_count += 1
         self.log.debug("Built Resources: Included {} packages", package_count)
+        return package_count
 
     def run(self) -> int:
-        """Run the application
+        """Run the application.
+
         :return: The return value specified by the first call to Application.quit()
         """
         self.log.open()
@@ -89,14 +111,27 @@ class Game(object):
         self.log.close()
         return self._return_value
 
-    def _abort(self, message, *vargs, **kwargs):
+    def _abort(self, message, *vargs, **kwargs) -> 'NoReturn':
+        """Private method used to abort the application instantly from anywhere.
+
+        This method will call sys.exit(-1); any code which would normally run after the run() method returned will not
+        be run after this.
+
+        :param message: The message to log
+        :param vargs: Positional arguments to format into the message
+        :param kwargs: Keyword arguments to format into the message
+        """
         self.log.fatal(message, *vargs, **kwargs)
         self.log.close()
         self._root.destroy()
         self._root = None
         sys.exit(-1)
 
-    def _load_packages(self, root_path: str):
+    def _load_packages(self, root_path: str) -> None:
+        """Load all packages located under the root_path given.
+
+        :param root_path: The root path from which to load packages
+        """
         self._packages.clear()
         for file_name in os.listdir(root_path):
             self.log.debug("Attempting to load package from {}", file_name)
