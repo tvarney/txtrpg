@@ -134,6 +134,10 @@ class Game(object):
         """
         self._packages.clear()
         for file_name in os.listdir(root_path):
+            # Skip any name which starts with an underscore (private, also used by __pycache__)
+            if file_name.startswith("_"):
+                continue
+
             self.log.debug("Attempting to load package from {}", file_name)
             file_path = os.path.join(root_path, file_name)
             _package = package.Package()
