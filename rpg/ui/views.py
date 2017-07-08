@@ -162,7 +162,7 @@ class GameView(View):
         :param displayable: The displayable resource to display
         :param update_status_bar: If the status bar should be updated.
         """
-        self.set_title(displayable.title(), False)
+        self.set_title(displayable.title(self._game_obj), False)
         self.set_text(displayable.text(self._game_obj), False)
         self.set_options(displayable.options(self._game_obj), update_status_bar)
 

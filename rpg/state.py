@@ -152,5 +152,4 @@ class GameData(object):
         # Technically, this annotation can be wrong; when it is though, we don't do anything
         view = self._game_object.stack.current()  # type: views.GameView
         if view.is_game_view():
-            view.set_text(displayable.text(self._game_object))
-            view.set_options(displayable.options(self._game_object))
+            view.display(displayable)
