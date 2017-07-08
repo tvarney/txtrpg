@@ -13,6 +13,7 @@ import inspect
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
+    from rpg.data import actor
     from rpg.ui import options, views
     from typing import Callable, List
 
@@ -167,3 +168,22 @@ class LocationEvent(GameEvent):
         :param game: The app.Game instance to apply to
         """
         game.state.set_location(self._location_id)
+
+
+class FightEndEvent(GameEvent):
+    def apply(self, game: 'app.Game'):
+        view = game.stack.current()  # type: views.GameView
+        if view.is_game_view():
+            view.fight_end()
+
+
+class FightStartEvent(GameEvent):
+    def __init__(self, monster: 'actor.Monster'):
+        GameEvent.__init__(self)
+        self._monster = monster
+
+    def apply(self, game: 'app.Game'):
+        view = game.stack.current()  # type: views.GameView
+        if view.is_game_view():
+            view.fight_start(self._monster)
+

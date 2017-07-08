@@ -302,3 +302,57 @@ class AttributeEditorFrame(tkinter.Frame):
         _actor.stats.charisma.level_up(self._frmCharisma.value.get() - _actor.stats.charisma.value())
         _actor.stats.luck.level_up(self._frmLuck.value.get() - _actor.stats.luck.value())
         _actor.calculate_secondaries()
+
+
+class StatCanvas(tkinter.Canvas):
+    def __init__(self, root: tkinter.Frame, title: str, width: int, height: int, color: int):
+        tkinter.Canvas.__init__(self, root)
+        self._width = width
+        self._height = height
+        self._color = color
+        self._title = title
+
+    def draw_self(self):
+        self.create_text()
+
+
+class CombatStatusBar(tkinter.Frame):
+    def __init__(self, root: tkinter.Frame, **kwargs):
+        tkinter.Frame.__init__(self, root, **kwargs)
+        # We want a layout like:
+        # Name: Level (buffs)
+        # Health | | Mana | | Stamina
+
+        self._var_name = tkinter.StringVar(self)
+        self._var_level = tkinter.StringVar(self)
+        self._var_status = tkinter.StringVar(self)
+
+        self._title_frame = tkinter.Frame(self)
+        self._stats_frame = tkinter.Frame(self)
+
+        self._lbl_name = tkinter.Label(self._title_frame, textvariable=self._var_name, font=("arial", 14, "bold"))
+        self._lbl_level = tkinter.Label(self._title_frame, textvariable=self._var_level, font=("arial", 10, "bold"))
+        self._lbl_status = tkinter.Label(self._title_frame, textvariable=self._var_status, font=("arial", 10, "bold"))
+
+        self._lbl_health = widgets.LabeledVariable(self._stats_frame, "Health:")
+        self._lbl_mana = widgets.LabeledVariable(self._stats_frame, "Mana:")
+        self._lbl_stamina = widgets.LabeledVariable(self._stats_frame, "Stamina:")
+
+        self._lbl_name.pack(side="left")
+        self._lbl_level.pack(side="left")
+        self._lbl_status.pack(side="left")
+
+        self._lbl_health.pack(side="left")
+        self._lbl_stamina.pack(side="left")
+        self._lbl_mana.pack(side="left")
+
+        self._title_frame.pack(side="top", expand=True, fill="x")
+        self._stats_frame.pack(side="top", expand=True, fill="x")
+
+    def update_actor(self, actor_: "actor.Monster"):
+        self._var_name.set(actor_.name())
+        self._var_level.set("(lvl. 1)")
+        self._var_status.set("")
+        self._lbl_health.get_variable().set(actor_.stats.health.string(False))
+        self._lbl_stamina.get_variable().set(actor_.stats.stamina.string(False))
+        self._lbl_mana.get_variable().set(actor_.stats.mana.string(False))

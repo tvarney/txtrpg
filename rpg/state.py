@@ -74,7 +74,7 @@ class GameData(object):
 
         :param location_id: The resource_id of the new location
         """
-        instance = self.resources.get(resource.ResourceType.Location, location_id)
+        instance = self.resources.get(resource.ResourceType.Location, location_id)  # type: resource.Location
         if instance is None:
             self._game_object.log.error("Could not find location {}", location_id)
             return
@@ -83,8 +83,9 @@ class GameData(object):
         self._add_loc_text = True
         self.location.start(self._game_object)
         # Only display if the current state is GameState.Location and our instance is the correct instance
-        if self.location and self._state == GameState.Location and instance is self.location:
-            self._display(self.location)
+        if self._state == GameState.Location and instance is self.location:
+            if self.location is not None:
+                self._display(self.location)
 
     def set_dialog(self, dialog_id: str) -> None:
         """Attempt to set the current dialog to the one denoted by the given resource id.
@@ -99,6 +100,21 @@ class GameData(object):
             self._state = GameState.Dialog
             self.dialog = instance  # type: resource.Dialog
             self._display(self.dialog)
+
+    def set_fight(self, monster_template) -> None:
+        self._state = GameState.Fight
+        view = self._game_object.stack.current()  # type: views.GameView
+        if view.is_game_view():
+            view.fight_start(actor.Monster("Goblin"))
+            view.set_text("You are fighting a Goblin.")
+
+    def stop_fight(self) -> None:
+        self._state = GameState.Location
+        view = self._game_object.stack.current()  # type: views.GameView
+        if view.is_game_view():
+            view.fight_end(None)
+
+        self.resume_display()
 
     def game_view(self) -> 'Optional[views.GameView]':
         """Get the GameView instance, assuming it is the current view.

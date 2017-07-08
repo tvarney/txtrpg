@@ -1,11 +1,12 @@
 
-from rpg.ui import components, views, widgets
+from rpg import event
+from rpg.ui import components, options, views, widgets
 import tkinter
 
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
-    from rpg.ui import options as _options
+    from rpg.data import actor
     from typing import Optional
 
 Author = "Troy Varney"
@@ -145,16 +146,33 @@ class GameViewImpl(views.GameView):
         views.GameView.__init__(self, game, "GameView")
         self.frmOptions_Internal = None  # type: Optional[tkinter.Frame]
 
+        self._var_title = tkinter.StringVar(self)
+
         self.txtContent = widgets.StaticTextArea(self)
+        self.lblTitle = tkinter.Label(self, textvariable=self._var_title, font=('arial', 18, 'bold'))
         self.frmStatus = components.StatusBar(self)
         self.frmOptions = tkinter.Frame(self)
+        self.frmMonster = components.CombatStatusBar(self)
 
-        self.frmStatus.grid(column=0, row=0, sticky='ns')
-        self.txtContent.grid(column=1, row=0, sticky='nswe')
-        self.frmOptions.grid(column=0, row=1, columnspan=2, sticky='ew')
+        self.frmStatus.grid(column=0, row=0, rowspan=2, sticky='ns')
+        self.txtContent.grid(column=1, row=1, sticky='nswe')
+        self.frmOptions.grid(column=0, row=2, columnspan=2, sticky='ew')
+        self.lblTitle.grid(column=1, row=0, sticky="ew")
 
         self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        self._fight_options = options.OptionList((options.Option("Run Away", event.FightEndEvent()), 0, 0))
+
+    def set_title(self, text: str, update_status_bar: bool=False) -> None:
+        """Set the displayed title to the given text.
+
+        :param text: The text to update the title to
+        :param update_status_bar: If the status bar should be updated
+        """
+        self._var_title.set(text)
+        if update_status_bar:
+            self._update_status_bar()
 
     def set_text(self, text: str, update_status_bar: bool=True) -> None:
         """Set the text displayed by this GameView.
@@ -166,7 +184,7 @@ class GameViewImpl(views.GameView):
         if update_status_bar:
             self._update_status_bar()
 
-    def set_options(self, option_list: '_options.OptionList', update_status_bar: bool=True) -> None:
+    def set_options(self, option_list: 'options.OptionList', update_status_bar: bool=True) -> None:
         """Set the options displayed by this GameView.
 
         :param option_list: The options.OptionList instance to set the options to
@@ -196,11 +214,17 @@ class GameViewImpl(views.GameView):
     def resume(self):
         self.start()
 
+    def fight_start(self, actor_: 'actor.Monster'):
+        self.frmMonster.grid(column=1, row=0, sticky="ew")
+        self.frmMonster.update_actor(actor_)
+        self.set_options(self._fight_options)
 
-@views.view_impl
-class FightView(views.View):
-    def __init__(self, game: 'app.Game'):
-        views.View.__init__(self, game, "FightView")
+    def fight_update(self, actor_: 'actor.Monster'):
+        self.frmMonster.update_actor(actor_)
+
+    def fight_end(self):
+        self.frmMonster.grid_forget()
+        self._game_obj.state.resume_display()
 
 
 @views.view_impl

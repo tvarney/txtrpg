@@ -9,7 +9,6 @@ A View must be decorated with this decorator to be available for push/swap opera
 
 """
 
-# TODO: Move view implementations to base package
 # TODO: Add a way to allow packages to replace existing Views
 # TODO: Add a package hook for post-load but pre-display; this lets the initial_view be defined by a package hook.
 
@@ -20,7 +19,7 @@ from rpg.ui import components, widgets
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
-    from rpg.data import resource
+    from rpg.data import actor, resource
     from rpg.ui import options as _options
     from typing import Dict, List, Optional
 
@@ -163,12 +162,22 @@ class GameView(View):
         :param displayable: The displayable resource to display
         :param update_status_bar: If the status bar should be updated.
         """
+        self.set_title(displayable.title(), False)
         self.set_text(displayable.text(self._game_obj), False)
         self.set_options(displayable.options(self._game_obj), update_status_bar)
 
     @abstractmethod
+    def set_title(self, text: str, update_status_bar: bool=False) -> None:
+        """Set the displayed title to the given text.
+
+        :param text: The text to update the title to
+        :param update_status_bar: If the status bar should be updated
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def set_text(self, text: str, update_status_bar: bool=True) -> None:
-        """Set the text area of this GameView to the given text
+        """Set the text area of this GameView to the given text.
 
         :param text: The text to set the text area to
         :param update_status_bar: If the status bar should be updated
@@ -177,12 +186,33 @@ class GameView(View):
 
     @abstractmethod
     def set_options(self, options: '_options.OptionList', update_status_bar: bool=True) -> None:
-        """Set the options of this GameView to the given options.OptionList
+        """Set the options of this GameView to the given options.OptionList.
 
         :param options: The options.OptionList instance to set the option frame to
         :param update_status_bar: If the status bar should be updated
         """
-        raise NotImplementedError
+        raise NotImplementedError()
+
+    @abstractmethod
+    def fight_start(self, actor_: 'actor.Monster'):
+        """Change the GameView to display information needed during a fight instance.
+
+        :param actor_: The actor instance which is being fought
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def fight_update(self, actor_: 'actor.Monster'):
+        """Update fight specific components during a fight instance.
+
+        :param actor_: The actor instance which is being fought
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def fight_end(self):
+        """Change the GameView to no longer display additional fight specific components."""
+        raise NotImplementedError()
 
 
 class ViewManager(object):

@@ -1,6 +1,6 @@
 
 from rpg import event
-from rpg.data import resource
+from rpg.data import actor, resource
 from rpg.ui import options as _options
 
 import typing
@@ -23,11 +23,15 @@ class PlayersHouse(resource.Location):
     def __init__(self):
         resource.Location.__init__(self, "prologue.players_house")
 
+    def title(self, game: 'app.Game') -> str:
+        return "Your House"
+
     def text(self, game: 'app.Game') -> str:
         return "This is your house"
 
     def options(self, game: 'app.Game'):
-        return _options.OptionList((_options.Option("Leave", event.LocationEvent("prologue.town_square", 0)), 0, 0))
+        return _options.OptionList((_options.Option("Leave", event.LocationEvent("prologue.town_square", 0)), 0, 0),
+                                   (_options.Option("Test Fight", event.FightStartEvent(actor.Monster("Goblin"))), 0, 1))
 
     def start(self, game: 'app.Game'):
         pass
@@ -36,6 +40,9 @@ class PlayersHouse(resource.Location):
 class TownSquare(resource.BasicLocationImpl):
     def __init__(self):
         resource.BasicLocation.__init__(self, "prologue.town_square")
+
+    def title(self, game: 'app.Game') -> str:
+        return "Town Square"
 
     def text(self, game: 'app.Game') -> str:
         return "This is the Town Square"
@@ -48,7 +55,10 @@ class Market(resource.BasicLocationImpl):
     def __init__(self):
         resource.BasicLocation.__init__(self, "prologue.market")
 
-    def text(self, game: 'app.Game'):
+    def title(self, game: 'app.Game') -> str:
+        return "Market"
+
+    def text(self, game: 'app.Game') -> str:
         return "This is the Market"
 
     def locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':

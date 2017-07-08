@@ -202,6 +202,15 @@ class Displayable(Resource):
         Resource.__init__(self, type_id, resource_id)
 
     @abstractmethod
+    def title(self, game: 'app.Game') -> str:
+        """Get the title of this displayable resource.
+
+        :param game: The app.Game instance
+        :return: The title of this displayable resource
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def text(self, game: 'app.Game') -> str:
         """Get the text to display for this Displayable instance.
 
@@ -426,6 +435,10 @@ class BasicLocationImpl(BasicLocation):
         :param name_id: The unique id of this BasicLocationImpl
         """
         BasicLocation.__init__(self, name_id)
+
+    @abstractmethod
+    def title(self, game: 'app.Game') -> str:
+        raise NotImplementedError()
 
     @abstractmethod
     def text(self, game: 'app.Game') -> str:
