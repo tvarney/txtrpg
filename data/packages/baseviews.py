@@ -184,6 +184,9 @@ class GameViewImpl(views.GameView):
         if update_status_bar:
             self._update_status_bar()
 
+    def add_text(self, text: str, update_status_bar: bool=True) -> None:
+        self.txtContent.insert(tkinter.END, text)
+
     def set_options(self, option_list: 'options.OptionList', update_status_bar: bool=True) -> None:
         """Set the options displayed by this GameView.
 
@@ -214,10 +217,13 @@ class GameViewImpl(views.GameView):
     def resume(self):
         self.start()
 
-    def fight_start(self, actor_: 'actor.Monster'):
+    def fight_start(self, monster: 'actor.Monster'):
+        self.txtContent.clear()
         self.frmMonster.grid(column=1, row=0, sticky="ew")
-        self.frmMonster.update_actor(actor_)
+        self.frmMonster.update_actor(monster)
         self.set_options(self._fight_options)
+        self.update_idletasks()
+        self.txtContent.replace(monster.get_intro_text(self._game_obj))
 
     def fight_update(self, actor_: 'actor.Monster'):
         self.frmMonster.update_actor(actor_)

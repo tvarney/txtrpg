@@ -194,6 +194,15 @@ class GameView(View):
         raise NotImplementedError()
 
     @abstractmethod
+    def add_text(self, text: str, update_status_bar: bool=True) -> None:
+        """Add text to this GameView.
+
+        :param text: The text to append to this GameView
+        :param update_status_bar: If the status bar should be updated
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def fight_start(self, actor_: 'actor.Monster'):
         """Change the GameView to display information needed during a fight instance.
 

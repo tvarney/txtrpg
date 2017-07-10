@@ -11,6 +11,7 @@ from rpg.data import attributes
 
 import typing
 if typing.TYPE_CHECKING:
+    from rpg import app
     from typing import Optional
 
 
@@ -136,6 +137,15 @@ class Monster(NonPlayerCharacter):
         :param stats: The attributes of the monster
         """
         NonPlayerCharacter.__init__(self, name, race, stats)
+
+    def get_intro_text(self, game: 'app.Game'):
+        """Get the text displayed when the monster is first encountered in a fight instance.
+
+        :return: A string used when the monster is first encountered
+        """
+        name = self.name()
+        article = "a" if name[0] not in "aeiou" else "an"
+        return "You are fighting {} {}".format(article, name)
 
     def get_dialog(self, game) -> 'Optional[str]':
         """Get a dialog for this monster.
