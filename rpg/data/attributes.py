@@ -218,6 +218,33 @@ class AttributeList(object):
         else:
             return value
 
+    @staticmethod
+    def default_health(attr_list: 'AttributeList') -> int:
+        """Get the default level for the Health attribute from an AttributeList
+
+        :param attr_list: The AttributeList instance to calculate default health level from
+        :return: The default level of health an actor with this AttributeList would have
+        """
+        return attr_list.strength.level() * 7 + attr_list.constitution.level() * 3
+
+    @staticmethod
+    def default_mana(attr_list: 'AttributeList'):
+        """Get the default level for the Mana attribute from an AttributeList
+
+        :param attr_list: The AttributeList instance to calculate default mana from
+        :return: The default level of mana an actor with this AttributeList would have
+        """
+        return attr_list.intelligence.level() * 4 + attr_list.wisdom.level() * 6
+
+    @staticmethod
+    def default_stamina(attr_list: 'AttributeList'):
+        """Get the default level for the Stamina attribute from an AttributeList
+
+        :param attr_list: The AttributeList instance to calculate default stamina from
+        :return: The default level of stamina an actor with this AttributeList would have
+        """
+        return attr_list.constitution.level() * 7 + attr_list.agility.level() * 3
+
     def __init__(self, **kwargs):
         """Create a new AttributeList instance.
 
@@ -237,10 +264,6 @@ class AttributeList(object):
 
         :param kwargs: keyword arguments for initial attribute values
         """
-        self.health = AttributeList._coerce(kwargs.get("health", Stat(100)), Stat)
-        self.mana = AttributeList._coerce(kwargs.get("mana", Stat(100)), Stat)
-        self.stamina = AttributeList._coerce(kwargs.get("stamina", Stat(100)), Stat)
-        self.energy = AttributeList._coerce(kwargs.get("energy", Stat(100)), Stat)
 
         self.strength = AttributeList._coerce(kwargs.get("str", Attribute(10)), Attribute)
         self.dexterity = AttributeList._coerce(kwargs.get("dex", Attribute(10)), Attribute)
@@ -250,3 +273,9 @@ class AttributeList(object):
         self.wisdom = AttributeList._coerce(kwargs.get("wis", Attribute(10)), Attribute)
         self.charisma = AttributeList._coerce(kwargs.get("cha", Attribute(10)), Attribute)
         self.luck = AttributeList._coerce(kwargs.get("lck", Attribute(10)), Attribute)
+
+        self.health = AttributeList._coerce(kwargs.get("health", Stat(AttributeList.default_health(self))), Stat)
+        self.mana = AttributeList._coerce(kwargs.get("mana", Stat(AttributeList.default_mana(self))), Stat)
+        self.stamina = AttributeList._coerce(kwargs.get("stamina", Stat(AttributeList.default_stamina(self))), Stat)
+        self.energy = AttributeList._coerce(kwargs.get("energy", Stat(100)), Stat)
+
