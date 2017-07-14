@@ -257,7 +257,7 @@ class Package(object):
                         self.resources.add(_package_obj)
                         _loaded_items += 1
         except Exception as e:
-            _err_str += "{}:\n{}".format(e, e.__traceback__)
+            _err_str += "{}:\n{}".format(e, str(e.__traceback__))
 
         # We want to return None for the error string if no errors occurred so error checking is as simple as:
         #    num, errstr = pkg.load(...)

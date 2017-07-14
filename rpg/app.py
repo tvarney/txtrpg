@@ -104,7 +104,7 @@ class Game(object):
             tkinter.mainloop()
         except Exception as e:
             # This will force a full shutdown
-            self._abort("Caught Exception at top level: {}\n{}", e, e.__traceback__)
+            self._abort("Caught Exception at top level: {}\n{}", e, str(e.__traceback__))
 
         self.stack.finalize()
         self.stack.clear_views()
