@@ -6,9 +6,9 @@
 import inspect
 import os
 import os.path
+from rpg import util
 from rpg.data import resource, resources
 from rpg.io import module
-import traceback
 
 import typing
 if typing.TYPE_CHECKING:
@@ -145,8 +145,7 @@ class Package(object):
             try:
                 func(game)
             except Exception as e:
-                game.log.error("Exception in initialize function {}:\n{}", func.__name__,
-                               ''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+                game.log.error("Exception in initialize function {}:\n{}", func.__name__, util.format_exception(e))
 
     def finalize(self, game: 'app.Game') -> None:
         """Call finalization callbacks defined in this package.
@@ -157,8 +156,7 @@ class Package(object):
             try:
                 func(game)
             except Exception as e:
-                game.log.error("Exception in finalize function {}:\n{}", func.__name__,
-                               ''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+                game.log.error("Exception in finalize function {}:\n{}", func.__name__, util.format_exception(e))
 
     def _load_dir(self, dir_path: str, root_path: 'Optional[str]'=None) -> 'Tuple[int, Optional[str]]':
         """Load all files from the given directory.
@@ -260,7 +258,7 @@ class Package(object):
                         self.resources.add(_package_obj)
                         _loaded_items += 1
         except Exception as e:
-            _err_str += "{}".format(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
+            _err_str += util.format_exception(e, True)
 
         # We want to return None for the error string if no errors occurred so error checking is as simple as:
         #    num, errstr = pkg.load(...)

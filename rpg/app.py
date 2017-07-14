@@ -5,12 +5,11 @@
 
 import os
 import os.path
-from rpg import state
+from rpg import state, util
 from rpg.io import log, package
 from rpg.ui import views
 import sys
 import tkinter
-import traceback
 
 import typing
 if typing.TYPE_CHECKING:
@@ -104,7 +103,7 @@ class Game(object):
             tkinter.mainloop()
         except Exception as e:
             # This will force a full shutdown
-            self._abort("Caught Exception at top level: {}\n{}", e, traceback.format_tb(e.__traceback__))
+            self._abort("Caught Exception at top level:\n{}", util.format_exception(e))
 
         self.stack.finalize()
         self.stack.clear_views()
