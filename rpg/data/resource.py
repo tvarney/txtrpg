@@ -11,13 +11,15 @@ and the resource_id is a unique string used to look the resource up.
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum, unique
 from rpg import event
-from rpg.data import actor, attributes
 from rpg.ui import options as _options
 
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from typing import List, Optional, Tuple
+
+
+ResourceID = str
 
 
 @unique
@@ -33,7 +35,7 @@ class ResourceType(IntEnum):
     Location = 0
     Dialog = 1
     Item = 2
-    Monster = 3
+    Actor = 3
     Callback = 4
     COUNT = 5
 
@@ -47,14 +49,14 @@ class Resource(metaclass=ABCMeta):
 
     """
 
-    def __init__(self, type_id: ResourceType, resource_id: str) -> None:
+    def __init__(self, type_id: ResourceType, resource_id: ResourceID) -> None:
         """Create a new Resource object.
 
         :param type_id: The ResourceType enum object appropriate for this type of Resource
         :param resource_id: The unique string identifier used to look this Resource up
         """
         self._type_id = type_id  # type: ResourceType
-        self._resource_id = resource_id  # type: str
+        self._resource_id = resource_id  # type: ResourceID
         self._package = None  # type: Optional[str]
 
     def type_id(self) -> ResourceType:
@@ -64,7 +66,7 @@ class Resource(metaclass=ABCMeta):
         """
         return self._type_id
 
-    def resource_id(self) -> str:
+    def resource_id(self) -> ResourceID:
         """Get the resource_id string of this resource.
 
         :return: The resource_id string of this Resource instance
@@ -90,7 +92,7 @@ class Callback(Resource):
 
     """
 
-    def __init__(self, resource_id: str) -> None:
+    def __init__(self, resource_id: ResourceID) -> None:
         """Create a new Callback instance.
 
         :param resource_id: The unique string identifying this Callback Resource
@@ -106,80 +108,6 @@ class Callback(Resource):
         raise NotImplementedError()
 
 
-class MonsterTemplate(Resource):
-
-    """A template used to generate monsters.
-
-    The MonsterTemplate class defines all the data needed to dynamically generate a monster for any given difficulty
-    level. Ideally, this object is able to change the name/stats/attacks of a given monster generated based on the
-    difficulty of the encounter, as well as global/game-state settings for difficulty.
-
-    """
-
-    def __init__(self, resource_id: str, name: str, **kwargs) -> None:
-        """Create a new MonsterTemplate instance.
-
-        Keyword arguments to this function may be any of the following:
-            str: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters strength attribute
-            dex: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters dexterity attribute
-            con: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters constitution attribute
-            agl: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters agility attribute
-            int: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters intelligence attribute
-            wis: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters wisdom attribute
-            cha: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters charisma attribute
-            lck: Union[int, Tuple[int, int, int]] = 10
-                The flat value or a tuple of length 3 defining a range for the monsters luck attribute
-            health: Union[int, Tuple[int, int, int]] = None
-                The flat value or a tuple of length 3 defining a range for the monsters health
-                If this is left as None, then the health formula is used instead
-            stamina: Union[int, Tuple[int, int, int]] = None
-                The flat value or a tuple of length 3 defining a range for the monsters stamina
-                If this is left as None, then the stamina formula is used instead
-            mana: Union[int, Tuple[int, int, int]] = None
-                The flat value or a tuple of length 3 defining a range for the monsters mana
-                If thie is left as None, then the mana formula is used instead
-
-
-        :param resource_id: The unique string used to identify this monster template
-        :param name: The name of the monster
-        :param kwargs: Various other arguments which may be left blank for a default value
-        """
-        Resource.__init__(self, ResourceType.Monster, resource_id)
-        self._name = name
-        
-        self._strength = kwargs.get("str", 10)
-        self._dexterity = kwargs.get("dex", 10)
-        self._constitution = kwargs.get("con", 10)
-        self._agility = kwargs.get("agl", 10)
-        self._intelligence = kwargs.get("int", 10)
-        self._wisdom = kwargs.get("cha", 10)
-        self._charisma = kwargs.get("cha", 10)
-        self._luck = kwargs.get("lck", 10)
-        
-        self._health = kwargs.get("health", None)
-        self._mana = kwargs.get("mana", None)
-        self._stamina = kwargs.get("stamina", None)
-    
-    def generate(self) -> 'actor.Monster':
-        """Generatea a monster instance from this template.
-
-        :return: A new instance of rpg.actor.Monster which can be used in a Fight instance
-        """
-        _ability_scores = attributes.AttributeList(str=self._strength, dex=self._dexterity, con=self._constitution,
-                                                   agl=self._agility, int=self._intelligence, wis=self._wisdom,
-                                                   cha=self._charisma, lck=self._luck, health=self._health,
-                                                   stamina=self._stamina, mana=self._mana)
-        _monster = actor.Monster(self._name, None, _ability_scores)
-        return _monster
-
-
 class Displayable(Resource):
 
     """A resource which can be displayed on a GameView instance.
@@ -190,7 +118,7 @@ class Displayable(Resource):
 
     """
 
-    def __init__(self, type_id: ResourceType, resource_id: str) -> None:
+    def __init__(self, type_id: ResourceType, resource_id: ResourceID) -> None:
         """Create a new Displayable instance.
 
         The Displayable class is not a valid Resource type in and of itself; sub-classes of the Displayable class should
@@ -251,46 +179,6 @@ class Displayable(Resource):
         self.start(game)
 
 
-class Location(Displayable):
-
-    """Abstract base class of all Location objects.
-
-    A location object represents the current part of the game world that the player is in. These are further divided
-    down into actual Locations and 'Features'. A feature is generally used for parts of the parent location which either
-    take no time or very little time to travel to. Features can be things like shops, houses, alleyways, etc.
-
-    There are further subclasses of Location which simplify the process of creating a Location by standardizing on how
-    the data the location holds and how it displays it, though it is a perfectly valid method to provide subclasses of
-    the base Location class.
-
-    """
-
-    def __init__(self, resource_id: str) -> None:
-        """Initialize the Location instance.
-
-        :param resource_id: The unique id string used to look this location up
-        """
-        Displayable.__init__(self, ResourceType.Location, resource_id)
-
-    @abstractmethod
-    def text(self, game: 'app.Game') -> str:
-        """Get the text to display for this Location.
-
-        :param game: The app.Game instance displaying this Location
-        :return: The text to display for this Location
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def options(self, game: 'app.Game') -> '_options.OptionList':
-        """Get the OptionList used to set the options for this Location.
-
-        :param game: The app.Game instance displaying this Location
-        :return: An OptionList instance denoting the options available at this Location
-        """
-        raise NotImplementedError()
-
-
 class Dialog(Displayable):
 
     """Base class for resources representing narration or conversations.
@@ -299,7 +187,7 @@ class Dialog(Displayable):
 
     """
 
-    def __init__(self, resource_id: str) -> None:
+    def __init__(self, resource_id: ResourceID) -> None:
         """Initialize the Dialog instance.
 
         :param resource_id: The unique id string used to look this dialog up
@@ -316,168 +204,10 @@ class Dialog(Displayable):
         raise NotImplementedError()
 
     @abstractmethod
-    def options(self, game: 'app.Game') -> '_options.OptionList':
+    def options(self, game: 'app.Game') -> 'options.OptionList':
         """Get the OptionList used to set the options for this Dialog.
 
         :param game: The app.Game instance displaying this Dialog
         :return: An OptionList instance denoting the options available for this Dialog
         """
         raise NotImplementedError()
-
-
-class BasicLocation(Location):
-
-    """Specialization of the Location class to provide a standard interface to most locations.
-
-    The BasicLocation class defines the concept of a Location providing links to other locations, a collection of
-    'features' or sub-locations of this location, and non-player characters.
-
-    These methods are all marked abstract and left to the implementation to provide.
-
-    """
-
-    def __init__(self, name_id: str) -> None:
-        """Initialize the BasicLocation instance.
-
-        :param name_id: The unique id used to look this location up
-        """
-        Location.__init__(self, name_id)
-        self._options = _options.OptionList()  # type: _options.OptionList
-        self._options_locations = _options.OptionList()  # type: _options.OptionList
-        self._options_features = _options.OptionList()  # type: _options.OptionList
-        self._options_npcs = _options.OptionList()  # type: _options.OptionList
-
-    @abstractmethod
-    def text(self, game: 'app.Game'):
-        """Get the text to display for this location.
-
-        :param game: The app.Game instance displaying this location
-        :return: The text to display for this location
-        """
-        raise NotImplementedError()
-
-    def options(self, game: 'app.Game') -> '_options.OptionList':
-        """Get the OptionList instance used to set the options for this location.
-
-        This method uses the OptionList.generate_paged_list() method to create standard options for travel locations,
-        feature locations, and NPCs present at the location. If the resepctive method returns None, then that button is
-        not created.
-
-        :param game: The app.Game instance displaying this location
-        :return: An OptionList instance denoting options for this location
-        """
-        self._options.clear()
-        _locations = self.locations(game)
-        if _locations:
-            if len(_locations) > 0:
-                game.log.debug("BasicLocation::options(): Adding Travel button")
-                travel_options = list((name, event.LocationEvent(dest, td)) for name, dest, td in _locations)
-                self._options_locations = _options.OptionList.generate_paged_list(travel_options)
-                opt_travel = _options.Option("Travel", event.UpdateOptionsEvent(self._options_locations))
-                self._options.set(opt_travel, 0, 0)
-            else:
-                game.log.debug("BasicLocation::options(): Travel options list is empty")
-        else:
-            game.log.debug("BasicLocation::options(): Travel options list is None")
-
-        _features = self.features(game)
-        if _features:
-            if len(_features) > 0:
-                game.log.debug("BasicLocation::options(): Adding Features button")
-                feature_options = list((name, event.LocationEvent(dest, td)) for name, dest, td in _features)
-                self._options_features = _options.OptionList.generate_paged_list(feature_options)
-                opt_features = _options.Option("Visit", event.UpdateOptionsEvent(self._options_features))
-                self._options.set(opt_features, 0, 1)
-            else:
-                game.log.debug("BasicLocation::options(): Feature options list is empty")
-        else:
-            game.log.debug("BasicLocation::options(): Feature options list is None")
-
-        return self._options
-
-    @abstractmethod
-    def locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
-        """Get a list of (name, resource_id, minutes) tuples which denote locations that may be traveled to.
-
-        :param game: The game object
-        :return: A list of possible locations to travel to from this location
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def features(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
-        """Get a list of (name, resource_id, minutes) tuples which denote features within this location.
-
-        :param game: The game object
-        :return: A list of possible sub-locations to visit at this location
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def npcs(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str]]]':
-        """Get a list of (name, resource_id) tuples which denote npcs at this location.
-
-        :param game: The game object
-        :return: A list of npcs at this location
-        """
-        raise NotImplementedError()
-
-
-class BasicLocationImpl(BasicLocation):
-
-    """A subclass of BasicLocationImpl which provides default methods for the BasicLocation API.
-
-    """
-
-    def __init__(self, name_id: str) -> None:
-        """Initialize the BasicLocationImpl instance.
-
-        :param name_id: The unique id of this BasicLocationImpl
-        """
-        BasicLocation.__init__(self, name_id)
-
-    @abstractmethod
-    def title(self, game: 'app.Game') -> str:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def text(self, game: 'app.Game') -> str:
-        """Get the text to display for this location.
-
-        :param game: The app.Game instance displaying this location
-        :return: The text to display for this location
-        """
-        raise NotImplementedError()
-
-    def locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
-        """Get the locations which may be traveled to from this location.
-
-        If not overloaded by a subclass, this method just returns None. This allows locations which don't provide travel
-        options to just ignore this method.
-
-        :param game: The app.Game instance displaying this location
-        :return: A list of locations which may be traveled to, or None
-        """
-        return None
-
-    def features(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
-        """Get the feature locations which may be visited from this location.
-
-        If not overloaded by a subclass, this method just returns None. This allows locations which don't provide
-        features to visit to just ignore this method.
-
-        :param game: The app.Game instance displaying this location
-        :return: A list of locations which may be visited at this location, or None
-        """
-        return None
-
-    def npcs(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str]]]':
-        """Get the npcs who are present at this location.
-
-        If not overloaded by a subclass, this method just returns None. This allows locations which don't provide NPCs
-        to just ignore this method.
-
-        :param game:
-        :return:
-        """
-        return None

@@ -1,6 +1,6 @@
 
 from rpg import event
-from rpg.data import actor, resource
+from rpg.data import actor, location, resource
 from rpg.ui import options as _options
 
 import typing
@@ -19,9 +19,9 @@ class CallbackStart(resource.Callback):
         game.state.set_location("prologue.players_house")
 
 
-class PlayersHouse(resource.Location):
+class PlayersHouse(location.Location):
     def __init__(self):
-        resource.Location.__init__(self, "prologue.players_house")
+        location.Location.__init__(self, "prologue.players_house")
 
     def title(self, game: 'app.Game') -> str:
         return "Your House"
@@ -30,16 +30,15 @@ class PlayersHouse(resource.Location):
         return "This is your house"
 
     def options(self, game: 'app.Game'):
-        return _options.OptionList((_options.Option("Leave", event.LocationEvent("prologue.town_square", 0)), 0, 0),
-                                   (_options.Option("Test Fight", event.FightStartEvent(actor.Monster("Goblin"))), 0, 1))
+        return _options.OptionList((_options.Option("Leave", event.LocationEvent("prologue.town_square", 0)), 0, 0))
 
     def start(self, game: 'app.Game'):
         pass
 
 
-class TownSquare(resource.BasicLocationImpl):
+class TownSquare(location.BasicLocationImpl):
     def __init__(self):
-        resource.BasicLocation.__init__(self, "prologue.town_square")
+        location.BasicLocation.__init__(self, "prologue.town_square")
 
     def title(self, game: 'app.Game') -> str:
         return "Town Square"
@@ -51,9 +50,9 @@ class TownSquare(resource.BasicLocationImpl):
         return [("Market", "prologue.market", 0)]
 
 
-class Market(resource.BasicLocationImpl):
+class Market(location.BasicLocationImpl):
     def __init__(self):
-        resource.BasicLocation.__init__(self, "prologue.market")
+        location.BasicLocation.__init__(self, "prologue.market")
 
     def title(self, game: 'app.Game') -> str:
         return "Market"
