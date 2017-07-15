@@ -10,12 +10,12 @@ and the resource_id is a unique string used to look the resource up.
 
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum, unique
-from rpg import event
 from rpg.ui import options as _options
 
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
+    from rpg.data import resources
     from typing import List, Optional, Tuple
 
 
@@ -37,7 +37,8 @@ class ResourceType(IntEnum):
     Item = 2
     Actor = 3
     Callback = 4
-    COUNT = 5
+    Recipe = 5
+    COUNT = 6
 
 
 class Resource(metaclass=ABCMeta):
@@ -211,3 +212,43 @@ class Dialog(Displayable):
         :return: An OptionList instance denoting the options available for this Dialog
         """
         raise NotImplementedError()
+
+
+class Recipe(Resource):
+
+    """Implementation of a crafting recipe
+
+    """
+
+    def __init__(self, resource_id: ResourceID, name: str, skill: 'List[Tuple[str, int]]',
+                 inputs: 'List[Tuple[ResourceID, int]]', outputs: 'List[Tuple[ResourceID, int]]') -> None:
+        """Create a new Recipe
+
+        :param resource_id: The resource_id of this Recipe
+        :param name: The displayed name of this Recipe
+        :param skill: A list of tuples of (skill_name, skill_level) required to use this Recipe
+        :param inputs: A list of tuples of (resource_id, count) input items needed to use this Recipe
+        :param outputs: A list of tuples of (resource_id, count) output items to yield on completion of the Recipe
+        """
+        Resource.__init__(self, ResourceType.Recipe, resource_id)
+        self._name = name
+        self._inputs = inputs
+        self._outputs = outputs
+        self._skill = skill
+
+    def validate(self, resource_package: 'resources.Resources') -> 'Tuple(bool, Optional[str])':
+        errors = list()
+        for _item, _count in self._inputs:
+            if resource_package.get(ResourceType.Item, _item) is None:
+                errors.append("  Invalid input item resource '{}'".format(_item))
+            if _count <= 0:
+                errors.append("  Invalid count value for input resource '{}'".format(_count))
+        for _item, _count in self._outputs:
+            if resource_package.get(ResourceType.Item, _item) is None:
+                errors.append("  Invalid output item resource '{}'".format(_item))
+            if _count <= 0:
+                errors.append("  Invalid count value for input resource '{}'".format(_count))
+        # TODO: Validate skills exist
+        if len(errors) > 0:
+            return False, "Errors in Recipe '{}':\n{}".format(self._name, "\n".join(errors))
+        return True, None
