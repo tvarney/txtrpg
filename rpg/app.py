@@ -7,7 +7,7 @@ import os
 import os.path
 from rpg import state, util
 from rpg.io import log, package
-from rpg.ui import views
+from rpg.ui import components, views
 import sys
 import tkinter
 
@@ -89,6 +89,9 @@ class Game(object):
         # TODO: save the geometry in some settings file somewhere and use the last saved size
         self._root.geometry("800x600")
         self._root.minsize(800, 600)
+
+        # Add the root menu
+        self._root.config(menu=components.RootMenuBar(self))
 
         # Load data - this just creates the package listing which can be toggled on/off
         self._load_packages("./data/packages")

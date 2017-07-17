@@ -156,7 +156,7 @@ class StaticTextArea(tkinter.Text):
         :param args: tags for the inserted text
         """
         self.config(state='normal')
-        tkinter.Text.insert(self, index, chars, "wrap", *args)
+        tkinter.Text.insert(self, index, chars, ("wrap", *args))
         self.config(state='disabled')
 
     def delete(self, index1, index2=None) -> None:

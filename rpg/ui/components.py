@@ -9,6 +9,7 @@ bar).
 
 from enum import IntEnum, unique
 import tkinter
+from rpg import util
 from rpg.ui import widgets
 
 import typing
@@ -29,6 +30,7 @@ class RootMenuBar(tkinter.Menu):
         """
         tkinter.Menu.__init__(self, game_obj.root())
         self._game_obj = game_obj
+        self._console = None
 
         self.file_menu = tkinter.Menu(self, tearoff=0)
         self.file_menu.add_command(label="Save", command=self._action_save)
@@ -37,6 +39,10 @@ class RootMenuBar(tkinter.Menu):
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self._action_exit)
         self.add_cascade(label="File", menu=self.file_menu)
+
+        self.debug_menu = tkinter.Menu(self, tearoff=0)
+        self.debug_menu.add_command(label="Open Console", command=self._action_console)
+        self.add_cascade(label="Debug", menu=self.debug_menu)
 
     def _action_save(self) -> None:
         self._game_obj.log.debug("RootMenuBar::_action_save(): Called")
@@ -49,6 +55,10 @@ class RootMenuBar(tkinter.Menu):
 
     def _action_options(self) -> None:
         self._game_obj.log.debug("RootMenuBar::_action_options(): Called")
+
+    def _action_console(self) -> None:
+        root = self._game_obj.root()  # type: tkinter.Tk
+        self._console = ConsoleWindow(root, self._game_obj)
 
 
 @unique
@@ -349,10 +359,67 @@ class CombatStatusBar(tkinter.Frame):
         self._title_frame.pack(side="top", expand=True, fill="x")
         self._stats_frame.pack(side="top", expand=True, fill="x")
 
-    def update_actor(self, actor_: "actor.Monster"):
+    def update_actor(self, actor_: "actor.NonPlayerCharacter"):
         self._var_name.set(actor_.name())
         self._var_level.set("(lvl. 1)")
         self._var_status.set("")
         self._lbl_health.get_variable().set(actor_.stats.health.string(False))
         self._lbl_stamina.get_variable().set(actor_.stats.stamina.string(False))
         self._lbl_mana.get_variable().set(actor_.stats.mana.string(False))
+
+
+class ConsoleWindow(tkinter.Toplevel):
+    def __init__(self, root: 'tkinter.Tk', game: 'app.Game', **kwargs):
+        tkinter.Toplevel.__init__(self, root, **kwargs)
+
+        self._globals = {
+            'abs': abs, 'all': all, 'any': any, 'ascii': ascii, 'bin': bin, 'bool': bool, 'bytearray':bytearray,
+            'bytes': bytes, 'callable': callable, 'chr': chr, 'complex': complex, 'dict': dict, 'dir': dir,
+            'divmod': divmod, 'enumerate': enumerate, 'filter': filter, 'float': float, 'format': format,
+            'hash': hash, 'help': help, 'hex': hex, 'id': id, 'int': int, 'isinstance': isinstance,
+            'issubclass': issubclass, 'iter': iter, 'len': len, 'list': list, 'locals': locals, 'map': map, 'max': max,
+            'min': min, 'next': next, 'object': object, 'oct': oct, 'ord': ord, 'pow': pow,
+            'print': self._print_override, 'range': range, 'repr': repr, 'reversed': reversed, 'round': round,
+            'set': set, 'slice': slice, 'sorted': sorted, 'str': str, 'sum': sum, 'super': super, 'tuple': tuple,
+            'type': type, 'vars': vars, 'zip': zip,
+
+            'game': game
+        }
+        self._game = game
+        self._lines = 1
+
+        self._frame = tkinter.Frame(self)
+        self._txtOutput = widgets.StaticTextArea(self._frame)
+        self._txtInput = tkinter.Text(self._frame, height=1)
+
+        self._txtInput.bind("<Return>", self._on_enter)
+        self._txtInput.bind("<Shift-Return>", self._next_line)
+
+        self._txtOutput.pack(side='top', fill='both')
+        self._txtInput.pack(side='bottom', fill='x')
+        self._frame.pack(fill='both')
+
+        self._txtOutput.tag_config("e", foreground="red")
+        self._txtOutput.tag_config("o", foreground="blue")
+
+    def _on_enter(self, _) -> None:
+        value = self._txtInput.get(1.0, "end").strip()
+        value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
+        self._txtInput.delete(1.0, "end")
+        self._txtOutput.insert("end", value_add)
+        self._txtInput.configure(height=1)
+        self._lines = 1
+        try:
+            rval = eval(value, self._globals)
+            if rval is not None:
+                self._txtOutput.insert("end", "{}\n".format(repr(rval)), "o")
+        except Exception as e:
+            self._txtOutput.insert("end", util.format_exception(e), "e")
+
+    def _next_line(self, _) -> None:
+        if self._lines < 3:
+            self._lines += 1
+            self._txtInput.configure(height=self._lines)
+
+    def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
+        self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end)
