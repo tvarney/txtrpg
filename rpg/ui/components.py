@@ -386,41 +386,54 @@ class ConsoleWindow(tkinter.Toplevel):
             'game': game
         }
         self._game = game
-        self._lines = 1
 
         self._frame = tkinter.Frame(self)
-        self._txtOutput = widgets.StaticTextArea(self._frame)
-        self._txtInput = tkinter.Text(self._frame, height=1)
+        self._scrollOutput = tkinter.Scrollbar(self._frame)
+        self._scrollInput = tkinter.Scrollbar(self._frame)
+        self._txtOutput = widgets.StaticTextArea(self._frame, yscrollcommand=self._scrollOutput.set)
+        self._txtInput = tkinter.Text(self._frame, height=1, yscrollcommand=self._scrollInput.set)
 
         self._txtInput.bind("<Return>", self._on_enter)
         self._txtInput.bind("<Shift-Return>", self._next_line)
 
-        self._txtOutput.pack(side='top', fill='both')
-        self._txtInput.pack(side='bottom', fill='x')
+        self._txtOutput.grid(row=0, column=0, sticky='nsew')
+        self._txtInput.grid(row=1, column=0, sticky='nsew')
+        self._scrollOutput.grid(row=0, column=1, sticky='ns')
+        self._scrollInput.grid(row=1, column=1, sticky='ns')
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
         self._frame.pack(fill='both')
 
         self._txtOutput.tag_config("e", foreground="red")
         self._txtOutput.tag_config("o", foreground="blue")
 
-    def _on_enter(self, _) -> None:
+    def _on_enter(self, _) -> str:
         value = self._txtInput.get(1.0, "end").strip()
         value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
         self._txtInput.delete(1.0, "end")
         self._txtOutput.insert("end", value_add)
-        self._txtInput.configure(height=1)
-        self._lines = 1
+        self._txtInput.configure(height=3)
+        done = False
         try:
             rval = eval(value, self._globals)
             if rval is not None:
                 self._txtOutput.insert("end", "{}\n".format(repr(rval)), "o")
+            done = True
         except Exception as e:
-            self._txtOutput.insert("end", util.format_exception(e), "e")
+            pass
+        if not done:
+            try:
+                exec(value, self._globals)
+            except Exception as e:
+                self._txtOutput.insert("end", util.format_exception(e), "e")
+        
         self._txtOutput.see("end")
+        return "break"
 
     def _next_line(self, _) -> None:
-        if self._lines < 3:
-            self._lines += 1
-            self._txtInput.configure(height=self._lines)
+        pass
 
     def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
         self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end, "o")
