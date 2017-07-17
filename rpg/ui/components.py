@@ -372,17 +372,21 @@ class ConsoleWindow(tkinter.Toplevel):
     def __init__(self, root: 'tkinter.Tk', game: 'app.Game', **kwargs):
         tkinter.Toplevel.__init__(self, root, **kwargs)
 
-        self._globals = {
+        self._builtins = {
             'abs': abs, 'all': all, 'any': any, 'ascii': ascii, 'bin': bin, 'bool': bool, 'bytearray':bytearray,
             'bytes': bytes, 'callable': callable, 'chr': chr, 'complex': complex, 'dict': dict, 'dir': dir,
-            'divmod': divmod, 'enumerate': enumerate, 'filter': filter, 'float': float, 'format': format,
-            'hash': hash, 'help': help, 'hex': hex, 'id': id, 'int': int, 'isinstance': isinstance,
-            'issubclass': issubclass, 'iter': iter, 'len': len, 'list': list, 'locals': locals, 'map': map, 'max': max,
-            'min': min, 'next': next, 'object': object, 'oct': oct, 'ord': ord, 'pow': pow,
-            'print': self._print_override, 'range': range, 'repr': repr, 'reversed': reversed, 'round': round,
-            'set': set, 'slice': slice, 'sorted': sorted, 'str': str, 'sum': sum, 'super': super, 'tuple': tuple,
-            'type': type, 'vars': vars, 'zip': zip,
+            'divmod': divmod, 'enumerate': enumerate, 'filter': filter, 'float': float, 'format': format, 'hash': hash,
+            'help': help, 'hex': hex, 'id': id, 'int': int, 'isinstance': isinstance, 'issubclass': issubclass,
+            'iter': iter, 'len': len, 'list': list, 'locals': locals, 'map': map, 'max': max, 'min': min, 'next': next,
+            'object': object, 'oct': oct, 'ord': ord, 'pow': pow, 'print': self._print_override, 'range': range,
+            'repr': repr, 'reversed': reversed, 'round': round, 'set': set, 'slice': slice, 'sorted': sorted,
+            'str': str, 'sum': sum, 'super': super, 'tuple': tuple, 'type': type, 'vars': vars, 'zip': zip,
 
+            "__import__": self._raise_exception,
+            "open": self._raise_exception,
+        }
+        self._globals = {
+            '__builtins__': self._builtins,
             'game': game
         }
         self._game = game
@@ -409,6 +413,8 @@ class ConsoleWindow(tkinter.Toplevel):
         self._txtOutput.tag_config("e", foreground="red")
         self._txtOutput.tag_config("o", foreground="blue")
 
+        self._txtInput.focus()
+
     def _on_enter(self, _) -> str:
         value = self._txtInput.get(1.0, "end").strip()
         value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
@@ -428,7 +434,7 @@ class ConsoleWindow(tkinter.Toplevel):
                 exec(value, self._globals)
             except Exception as e:
                 self._txtOutput.insert("end", util.format_exception(e), "e")
-        
+
         self._txtOutput.see("end")
         return "break"
 
@@ -437,3 +443,6 @@ class ConsoleWindow(tkinter.Toplevel):
 
     def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
         self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end, "o")
+
+    def _raise_exception(self, *args, **kwargs):
+        raise Exception("function not available")
