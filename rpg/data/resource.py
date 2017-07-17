@@ -16,7 +16,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import resources
-    from typing import List, Optional, Tuple
+    from typing import Callable, List, Optional, Tuple
 
 
 ResourceID = str
@@ -214,6 +214,15 @@ class Dialog(Displayable):
         raise NotImplementedError()
 
 
+@unique
+class RecipeCategory(IntEnum):
+    General = 0
+    Smelting = 1
+    Smithing = 2
+    Cooking = 3
+    Crafting = 4
+
+
 class Recipe(Resource):
 
     """Implementation of a crafting recipe
@@ -221,7 +230,8 @@ class Recipe(Resource):
     """
 
     def __init__(self, resource_id: ResourceID, name: str, skill: 'List[Tuple[str, int]]',
-                 inputs: 'List[Tuple[ResourceID, int]]', outputs: 'List[Tuple[ResourceID, int]]') -> None:
+                 inputs: 'List[Tuple[ResourceID, int]]', outputs: 'List[Tuple[ResourceID, int]]',
+                 **kwargs) -> None:
         """Create a new Recipe
 
         :param resource_id: The resource_id of this Recipe
@@ -235,6 +245,16 @@ class Recipe(Resource):
         self._inputs = inputs
         self._outputs = outputs
         self._skill = skill
+        self._category = kwargs.get("category", RecipeCategory.General)
+        self._available_callback = kwargs.get("avail_callback", None)  # type: Optional[Callable[[app.Game], bool]]
+
+    def available(self, game: 'app.Game') -> bool:
+        if self._available_callback is not None:
+            return self._available_callback(game)
+        return True
+
+    def category(self) -> RecipeCategory:
+        return self._category
 
     def validate(self, resource_package: 'resources.Resources') -> 'Tuple(bool, Optional[str])':
         errors = list()
