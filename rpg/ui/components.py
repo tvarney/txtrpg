@@ -415,6 +415,7 @@ class ConsoleWindow(tkinter.Toplevel):
                 self._txtOutput.insert("end", "{}\n".format(repr(rval)), "o")
         except Exception as e:
             self._txtOutput.insert("end", util.format_exception(e), "e")
+        self._txtOutput.see("end")
 
     def _next_line(self, _) -> None:
         if self._lines < 3:
@@ -422,4 +423,4 @@ class ConsoleWindow(tkinter.Toplevel):
             self._txtInput.configure(height=self._lines)
 
     def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
-        self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end)
+        self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end, "o")
