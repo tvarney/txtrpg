@@ -8,8 +8,7 @@ for various interactions which may be performed.
 """
 
 from abc import abstractmethod
-from rpg.data import attributes
-from rpg.data import resource
+from rpg.data import attributes, inventory, resource
 
 import typing
 if typing.TYPE_CHECKING:
@@ -33,6 +32,7 @@ class Actor(resource.Resource):
         """
         resource.Resource.__init__(self, resource.ResourceType.Actor, resource_id)
         self._name = name
+        self.inventory = inventory.Inventory()
 
         stats = kwargs.get("stats", None)
         self.stats = stats if stats is not None else attributes.AttributeList()  # type: attributes.AttributeList
@@ -67,7 +67,6 @@ class Player(Actor):
         """Create a new Player instance."""
         Actor.__init__(self, "builtin.player", "")
         self.attribute_points = 0  # type: int
-        self.inventory = None
 
     def get_intro_text(self):
         return ""

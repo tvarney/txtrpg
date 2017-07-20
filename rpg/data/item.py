@@ -32,6 +32,27 @@ class ItemType(IntEnum):
 
 
 @unique
+class EquipSlot(IntEnum):
+    Helmet = 0      # Full/Medium helmets, hats
+    Eyes = 1        # Goggles, glasses, blindfolds
+    Neck = 2        # Necklaces
+    Chest = 3       # Chest-Middle (armor)
+    Coat = 4        # Chest-Over (Jackets/Mantles)
+    Undershirt = 5  # Chest-Under (Shirts)
+    Waist = 6       # Belts, sashes
+    Legs = 7        # Legs-Middle (armor)
+    Pants = 8       # Legs-Under (pants)
+    Skirt = 9       # Legs-Alternate (skirts/kilts)
+    Feet = 10       # Boots, shoes, sandles
+    Hands = 11      # Gloves, Guantlets
+    Back = 12       # Capes/Backpacks (Wings, lol)
+    Quiver = 13
+    Ring = 14
+    Held = 15       # Weapons and shields
+    COUNT = 16
+
+
+@unique
 class WeaponType(IntEnum):
 
     """An enumeration of the different types of weapons.
@@ -180,8 +201,25 @@ class Attack(object):
         return "Attack({}, {}, {})".format(repr(self._name), repr(self._dmg), repr(self._accuracy))
 
 
-class CombatItem(Item):
+class WearableItem(Item):
+    def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float, slot: EquipSlot):
+        Item.__init__(self, resource_id, item_type, name, value, weight)
+        self._slot = slot
 
+    def slot(self) -> EquipSlot:
+        return self._slot
+
+
+class ArmorItem(WearableItem):
+    def __init__(self, resource_id: str, name: str, value: int, weight: float, slot: EquipSlot, damage_reduce: int):
+        WearableItem.__init__(self, resource_id, ItemType.Armor, name, value, weight, slot)
+        self._damage_reduce = damage_reduce
+
+    def damage_reduce(self) -> int:
+        return self._damage_reduce
+
+
+class CombatItem(WearableItem):
     """Base class for items which are used in combat.
 
     """
@@ -199,7 +237,7 @@ class CombatItem(Item):
         :param attacks: Attacks that may be made with this combat item
         :param block: How well this item can be used to block attacks
         """
-        Item.__init__(self, resource_id, item_type, name, value, weight)
+        WearableItem.__init__(self, resource_id, item_type, name, value, weight, EquipSlot.Held)
         self._hand_slots = hand_slots
         self._attacks = attacks if attacks is None or len(attacks) > 0 else None
         self._block = block
