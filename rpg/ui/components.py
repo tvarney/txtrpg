@@ -424,7 +424,11 @@ class ConsoleWindow(tkinter.Toplevel):
         if value == "":
             return "break"
 
-        self._state.history.append(value)
+        if len(self._state.history) > 0:
+            if self._state.history[-1] != value:
+                self._state.history.append(value)
+        else:
+            self._state.history.append(value)
         self._hist_line = 0
 
         value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
