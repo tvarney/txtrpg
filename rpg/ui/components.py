@@ -368,37 +368,31 @@ class CombatStatusBar(tkinter.Frame):
         self._lbl_mana.get_variable().set(actor_.stats.mana.string(False))
 
 
+# TODO: Split this into an environment (values and history) which persists across instances
+# TODO: Add a value to the environment for controlling the console window (clear, clear_history, etc)
 class ConsoleWindow(tkinter.Toplevel):
     def __init__(self, root: 'tkinter.Tk', game: 'app.Game', **kwargs):
         tkinter.Toplevel.__init__(self, root, **kwargs)
 
-        self._builtins = {
-            'abs': abs, 'all': all, 'any': any, 'ascii': ascii, 'bin': bin, 'bool': bool, 'bytearray':bytearray,
-            'bytes': bytes, 'callable': callable, 'chr': chr, 'complex': complex, 'dict': dict, 'dir': dir,
-            'divmod': divmod, 'enumerate': enumerate, 'filter': filter, 'float': float, 'format': format, 'hash': hash,
-            'help': help, 'hex': hex, 'id': id, 'int': int, 'isinstance': isinstance, 'issubclass': issubclass,
-            'iter': iter, 'len': len, 'list': list, 'locals': locals, 'map': map, 'max': max, 'min': min, 'next': next,
-            'object': object, 'oct': oct, 'ord': ord, 'pow': pow, 'print': self._print_override, 'range': range,
-            'repr': repr, 'reversed': reversed, 'round': round, 'set': set, 'slice': slice, 'sorted': sorted,
-            'str': str, 'sum': sum, 'super': super, 'tuple': tuple, 'type': type, 'vars': vars, 'zip': zip,
+        self._alt = False
+        self._ctrl = False
 
-            "__import__": self._raise_exception,
-            "open": self._raise_exception,
-        }
-        self._globals = {
-            '__builtins__': self._builtins,
-            'game': game
-        }
+        self._globals = {'game': game}
         self._game = game
+        self._history = []
+        self._hist_line = 0
+        self._stash = ""
 
         self._frame = tkinter.Frame(self)
         self._scrollOutput = tkinter.Scrollbar(self._frame)
         self._scrollInput = tkinter.Scrollbar(self._frame)
         self._txtOutput = widgets.StaticTextArea(self._frame, yscrollcommand=self._scrollOutput.set)
-        self._txtInput = tkinter.Text(self._frame, height=1, yscrollcommand=self._scrollInput.set)
+        self._txtInput = widgets.CustomTextArea(self._frame, height=1, yscrollcommand=self._scrollInput.set)
+        # self._txtInput = tkinter.Text(self._frame, height=1, yscrollcommand=self._scrollInput.set)
 
         self._txtInput.bind("<Return>", self._on_enter)
-        self._txtInput.bind("<Shift-Return>", self._next_line)
+        self._txtInput.bind("<Up>", self._arrow_up)  # Move to previous history line
+        self._txtInput.bind("<Down>", self._arrow_down)  # Move to next history line
 
         self._txtOutput.grid(row=0, column=0, sticky='nsew')
         self._txtInput.grid(row=1, column=0, sticky='nsew')
@@ -415,19 +409,32 @@ class ConsoleWindow(tkinter.Toplevel):
 
         self._txtInput.focus()
 
-    def _on_enter(self, _) -> str:
+    def _on_enter(self, event) -> 'Optional[str]':
+        # If shift is pressed, let the enter key pass un-interrupted
+        if widgets.shift(event):
+            return
+
+        # Otherwise, we need to display the text, reset the input box, run the code, and display the result
         value = self._txtInput.get(1.0, "end").strip()
-        value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
         self._txtInput.delete(1.0, "end")
+        if value == "":
+            return "break"
+
+        self._history.append(value)
+        self._hist_line = 0
+
+        value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
         self._txtOutput.insert("end", value_add)
         self._txtInput.configure(height=3)
         done = False
+        # Doing it as two separate try/except blocks prevents the "Exception occurred while handling a previous
+        # exception" message.
         try:
             rval = eval(value, self._globals)
             if rval is not None:
                 self._txtOutput.insert("end", "{}\n".format(repr(rval)), "o")
             done = True
-        except Exception as e:
+        except Exception as _:
             pass
         if not done:
             try:
@@ -435,14 +442,47 @@ class ConsoleWindow(tkinter.Toplevel):
             except Exception as e:
                 self._txtOutput.insert("end", util.format_exception(e), "e")
 
+        # Make sure the output is focused at the end of the text in it
         self._txtOutput.see("end")
         return "break"
-
-    def _next_line(self, _) -> None:
-        pass
 
     def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
         self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end, "o")
 
     def _raise_exception(self, *args, **kwargs):
         raise Exception("function not available")
+
+    def _arrow_up(self, _) -> str:
+        y, x = self._txtInput.get_mark('insert')
+        if y == 1:
+            min_hist = -len(self._history)
+            if min_hist < 0 and self._hist_line == 0:
+                self._stash = self._txtInput.get('1.0', 'end-1c').rstrip()
+
+            hist_line = max(self._hist_line - 1, min_hist)
+            if hist_line != self._hist_line:
+                self._hist_line = hist_line
+                self._txtInput.delete('1.0', 'end')
+                self._txtInput.insert('1.0', self._history[self._hist_line])
+                # self._txtInput.set_cursor('insert', 'end')
+                # self._txtInput.see('insert')
+            return "break"
+
+    def _arrow_down(self, _) -> str:
+        y, x = self._txtInput.get_mark('insert')
+        max_y, max_x = self._txtInput.get_mark('end')
+        if y == max_y - 1:
+            if self._hist_line == -1:
+                self._hist_line = 0
+                self._txtInput.delete('1.0', 'end')
+                self._txtInput.insert('1.0', self._stash)
+                self._stash = ""
+            else:
+                hist_line = min(self._hist_line + 1, 0)
+                if hist_line != self._hist_line:
+                    self._hist_line = hist_line
+                    self._txtInput.delete('1.0', 'end')
+                    if hist_line != 0:
+                        self._txtInput.insert('1.0', self._history[self._hist_line])
+            return "break"
+

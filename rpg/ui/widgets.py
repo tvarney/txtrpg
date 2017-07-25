@@ -9,7 +9,33 @@ import tkinter
 
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Callable, Optional
+    from typing import Callable, Optional, Tuple
+
+
+def shift(event):
+    return (event.state & 0x0001) != 0
+
+
+def caps_lock(event):
+    return (event.state & 0x0002) != 0
+
+
+def control(event):
+    return (event.state & 0x0004) != 0
+
+
+def numlock(event):
+    return (event.state & 0x0008) != 0
+
+
+def alt(event):
+    return (event.state & 0x20000) != 0
+
+
+def modifier_string(event):
+    return "Ctrl-" if control(event) else "" + (
+        "Alt-" if alt(event) else "") + (
+        "Shift-" if shift(event) else "") + event.keysym
 
 
 class Button(tkinter.Button):
@@ -185,3 +211,66 @@ class StaticTextArea(tkinter.Text):
     def clear(self) -> None:
         """Alias to the delete method which removes all text."""
         self.delete(1.0, 'end')
+
+
+class CustomTextArea(tkinter.Text):
+    def __init__(self, root: 'tkinter.Frame', *args, **kwargs):
+        tkinter.Text.__init__(self, root, *args, **kwargs)
+
+        self.bind_multiple(("<a>", self._keycode_a), ("<A>", self._keycode_a),
+                           ("<e>", self._keycode_e), ("<E>", self._keycode_e),
+                           ("<b>", self._keycode_b), ("<B>", self._keycode_b),
+                           ("<f>", self._keycode_f), ("<F>", self._keycode_f),
+                           ("<p>", self._keycode_p), ("<P>", self._keycode_p),
+                           ("<n>", self._keycode_n), ("<N>", self._keycode_n))
+
+    def bind_multiple(self, *args):
+        for keycode, event in args:
+            self.bind(keycode, event)
+
+    def get_mark(self, mark_name: str) -> 'Tuple[int, int]':
+        px, py = self.index(mark_name).split('.', 2)
+        return int(px), int(py)
+
+    def set_cursor(self, x, y):
+        self.mark_set('insert', "{}.{}".format(x, y))
+
+    def _keycode_a(self, event) -> 'Optional[str]':
+        # TODO: Provide key binding for selecting whole text - ctrl-a as start of line is shadows native select all
+        if control(event):
+            y, x = self.get_mark('insert')
+            self.mark_set('insert', '{}.{}'.format(y, 0))
+            return "break"
+
+    def _keycode_e(self, event) -> 'Optional[str]':
+        if control(event):
+            y, x = self.get_mark('insert')
+            self.mark_set('insert', '{}.end'.format(y))
+            return "break"
+
+    def _keycode_b(self, event) -> 'Optional[str]':
+        if control(event):
+            self.mark_set('insert', 'insert-1c')
+            return "break"
+        if alt(event):
+            self.mark_set('insert', 'insert-1c wordstart')
+            if self.get('insert', 'insert+1c').isspace():
+                self.mark_set('insert', 'insert-1c wordstart')
+
+    def _keycode_f(self, event) -> 'Optional[str]':
+        if control(event):
+            self.mark_set('insert', 'insert+1c')
+            return "break"
+        if alt(event):
+            self.mark_set('insert', 'insert+1c wordend')
+            return "break"
+
+    def _keycode_p(self, event) -> 'Optional[str]':
+        if control(event):
+            self.mark_set('insert', 'insert-1l')
+            return "break"
+
+    def _keycode_n(self, event) -> 'Optional[str]':
+        if control(event):
+            self.mark_set('insert', 'insert+1l')
+            return "break"
