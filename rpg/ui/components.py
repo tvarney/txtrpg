@@ -16,7 +16,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import actor
-    from typing import Dict, List, Optional, Tuple
+    from typing import Any, Dict, List, Optional, Tuple
 
 
 class RootMenuBar(tkinter.Menu):
@@ -372,19 +372,47 @@ class CombatStatusBar(tkinter.Frame):
 class ConsoleState(object):
     def __init__(self, game: 'app.Game'):
         self.history = list()
-        self.environ = {'game': game}
+        self.environ = {'game': game, 'console': self}
+        self._game = game
+        self._window = None
+
+    def bind(self, console_window: 'ConsoleWindow'):
+        self._window = console_window
+
+    def unbind(self):
+        self._window = None
+
+    def clear(self):
+        if self._window is not None:
+            self._window.clear()
+
+    def evaluate(self, code_string) -> 'Any':
+        # Ensure that game and console are always correct
+        code_string = code_string.strip()
+        if code_string == "reset":
+            self.environ = {'game': self._game, 'console': self}
+            self.history.clear()
+            self.clear()
+            return
+
+        try:
+            return eval(code_string, self.environ)
+        except Exception as _:
+            pass
+        # Let any exceptions thrown here be passed up to the caller
+        exec(code_string, self.environ)
 
 
-# TODO: Split this into an environment (values and history) which persists across instances
-# TODO: Add a value to the environment for controlling the console window (clear, clear_history, etc)
 class ConsoleWindow(tkinter.Toplevel):
     def __init__(self, root: 'tkinter.Tk', state: ConsoleState, **kwargs):
         tkinter.Toplevel.__init__(self, root, **kwargs)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._alt = False
         self._ctrl = False
 
         self._state = state
+        self._state.bind(self)
         self._hist_line = 0
         self._stash = ""
 
@@ -413,6 +441,14 @@ class ConsoleWindow(tkinter.Toplevel):
 
         self._txtInput.focus()
 
+    def clear(self):
+        print("Clear Window")
+        self._txtOutput.delete('1.0', 'end')
+
+    def _on_close(self):
+        self._state.unbind()
+        self.destroy()
+
     def _on_enter(self, event) -> 'Optional[str]':
         # If shift is pressed, let the enter key pass un-interrupted
         if widgets.shift(event):
@@ -434,21 +470,13 @@ class ConsoleWindow(tkinter.Toplevel):
         value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
         self._txtOutput.insert("end", value_add)
         self._txtInput.configure(height=3)
-        done = False
-        # Doing it as two separate try/except blocks prevents the "Exception occurred while handling a previous
-        # exception" message.
+
         try:
-            rval = eval(value, self._state.environ)
-            if rval is not None:
-                self._txtOutput.insert("end", "{}\n".format(repr(rval)), "o")
-            done = True
-        except Exception as _:
-            pass
-        if not done:
-            try:
-                exec(value, self._state.environ)
-            except Exception as e:
-                self._txtOutput.insert("end", util.format_exception(e), "e")
+            return_value = self._state.evaluate(value)
+            if return_value is not None:
+                self._txtOutput.insert('end', "{}\n".format(repr(return_value)), "o")
+        except Exception as e:
+            self._txtOutput.insert("end", util.format_exception(e), "e")
 
         # Make sure the output is focused at the end of the text in it
         self._txtOutput.see("end")
