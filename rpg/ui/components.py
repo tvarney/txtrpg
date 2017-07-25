@@ -31,6 +31,7 @@ class RootMenuBar(tkinter.Menu):
         tkinter.Menu.__init__(self, game_obj.root())
         self._game_obj = game_obj
         self._console = None
+        self._console_state = ConsoleState(game_obj)
 
         self.file_menu = tkinter.Menu(self, tearoff=0)
         self.file_menu.add_command(label="Save", command=self._action_save)
@@ -58,7 +59,7 @@ class RootMenuBar(tkinter.Menu):
 
     def _action_console(self) -> None:
         root = self._game_obj.root()  # type: tkinter.Tk
-        self._console = ConsoleWindow(root, self._game_obj)
+        self._console = ConsoleWindow(root, self._console_state)
 
 
 @unique
@@ -368,18 +369,22 @@ class CombatStatusBar(tkinter.Frame):
         self._lbl_mana.get_variable().set(actor_.stats.mana.string(False))
 
 
+class ConsoleState(object):
+    def __init__(self, game: 'app.Game'):
+        self.history = list()
+        self.environ = {'game': game}
+
+
 # TODO: Split this into an environment (values and history) which persists across instances
 # TODO: Add a value to the environment for controlling the console window (clear, clear_history, etc)
 class ConsoleWindow(tkinter.Toplevel):
-    def __init__(self, root: 'tkinter.Tk', game: 'app.Game', **kwargs):
+    def __init__(self, root: 'tkinter.Tk', state: ConsoleState, **kwargs):
         tkinter.Toplevel.__init__(self, root, **kwargs)
 
         self._alt = False
         self._ctrl = False
 
-        self._globals = {'game': game}
-        self._game = game
-        self._history = []
+        self._state = state
         self._hist_line = 0
         self._stash = ""
 
@@ -388,7 +393,6 @@ class ConsoleWindow(tkinter.Toplevel):
         self._scrollInput = tkinter.Scrollbar(self._frame)
         self._txtOutput = widgets.StaticTextArea(self._frame, yscrollcommand=self._scrollOutput.set)
         self._txtInput = widgets.CustomTextArea(self._frame, height=1, yscrollcommand=self._scrollInput.set)
-        # self._txtInput = tkinter.Text(self._frame, height=1, yscrollcommand=self._scrollInput.set)
 
         self._txtInput.bind("<Return>", self._on_enter)
         self._txtInput.bind("<Up>", self._arrow_up)  # Move to previous history line
@@ -420,7 +424,7 @@ class ConsoleWindow(tkinter.Toplevel):
         if value == "":
             return "break"
 
-        self._history.append(value)
+        self._state.history.append(value)
         self._hist_line = 0
 
         value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
@@ -430,7 +434,7 @@ class ConsoleWindow(tkinter.Toplevel):
         # Doing it as two separate try/except blocks prevents the "Exception occurred while handling a previous
         # exception" message.
         try:
-            rval = eval(value, self._globals)
+            rval = eval(value, self._state.environ)
             if rval is not None:
                 self._txtOutput.insert("end", "{}\n".format(repr(rval)), "o")
             done = True
@@ -438,7 +442,7 @@ class ConsoleWindow(tkinter.Toplevel):
             pass
         if not done:
             try:
-                exec(value, self._globals)
+                exec(value, self._state.environ)
             except Exception as e:
                 self._txtOutput.insert("end", util.format_exception(e), "e")
 
@@ -455,7 +459,7 @@ class ConsoleWindow(tkinter.Toplevel):
     def _arrow_up(self, _) -> str:
         y, x = self._txtInput.get_mark('insert')
         if y == 1:
-            min_hist = -len(self._history)
+            min_hist = -len(self._state.history)
             if min_hist < 0 and self._hist_line == 0:
                 self._stash = self._txtInput.get('1.0', 'end-1c').rstrip()
 
@@ -463,9 +467,7 @@ class ConsoleWindow(tkinter.Toplevel):
             if hist_line != self._hist_line:
                 self._hist_line = hist_line
                 self._txtInput.delete('1.0', 'end')
-                self._txtInput.insert('1.0', self._history[self._hist_line])
-                # self._txtInput.set_cursor('insert', 'end')
-                # self._txtInput.see('insert')
+                self._txtInput.insert('1.0', self._state.history[self._hist_line])
             return "break"
 
     def _arrow_down(self, _) -> str:
@@ -483,6 +485,5 @@ class ConsoleWindow(tkinter.Toplevel):
                     self._hist_line = hist_line
                     self._txtInput.delete('1.0', 'end')
                     if hist_line != 0:
-                        self._txtInput.insert('1.0', self._history[self._hist_line])
+                        self._txtInput.insert('1.0', self._state.history[self._hist_line])
             return "break"
-
