@@ -150,7 +150,7 @@ class GameViewImpl(views.GameView):
 
         self.txtContent = widgets.StaticTextArea(self)
         self.lblTitle = tkinter.Label(self, textvariable=self._var_title, font=('arial', 18, 'bold'))
-        self.frmStatus = components.StatusBar(self)
+        self.frmStatus = components.StatusBar(self, game)
         self.frmOptions = tkinter.Frame(self)
         self.frmMonster = components.CombatStatusBar(self)
 
@@ -202,7 +202,7 @@ class GameViewImpl(views.GameView):
 
     def _update_status_bar(self) -> None:
         """Private function used to update the StatusBar instance."""
-        self.frmStatus.update_actor(self._game_obj.state.player)
+        self.frmStatus.update_widgets(self._game_obj.state.player, self._game_obj)
 
     def text_area(self) -> tkinter.Text:
         """Get the tkinter.Text widget used to display text.
@@ -217,7 +217,7 @@ class GameViewImpl(views.GameView):
     def resume(self):
         self.start()
 
-    def fight_start(self, monster: 'actor.Monster'):
+    def fight_start(self, monster: 'actor.NonPlayerCharacter'):
         self.txtContent.clear()
         self.frmMonster.grid(column=1, row=0, sticky="ew")
         self.frmMonster.update_actor(monster)
@@ -225,7 +225,7 @@ class GameViewImpl(views.GameView):
         self.update_idletasks()
         self.txtContent.replace(monster.get_intro_text(self._game_obj))
 
-    def fight_update(self, actor_: 'actor.Monster'):
+    def fight_update(self, actor_: 'actor.NonPlayerCharacter'):
         self.frmMonster.update_actor(actor_)
 
     def fight_end(self):
@@ -237,3 +237,14 @@ class GameViewImpl(views.GameView):
 class InventoryView(views.View):
     def __init__(self, game: 'app.Game'):
         views.View.__init__(self, game, "InventoryView")
+
+        self._frm_items = widgets.VerticalScrolledFrame(self)
+        self._frm_control = tkinter.Frame(self)
+        self._btn_back = widgets.Button(self._frm_control, "Back", self._action_back)
+        self._btn_back.pack(side="left")
+
+    def start(self):
+        pass
+
+    def _action_back(self):
+        self._game_obj.stack.pop()

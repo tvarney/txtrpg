@@ -108,7 +108,7 @@ class LabeledVariable(tkinter.Frame):
         :param kwargs: Additional keyword arguments to apply to the frame
         """
         tkinter.Frame.__init__(self, root)
-        self._variable = var if var is not None else tkinter.StringVar()
+        self._variable = var if var is not None else tkinter.Variable()
 
         if "cnf_lbl" in kwargs:
             cnf_lbl = kwargs["cnf_lbl"]
@@ -126,6 +126,9 @@ class LabeledVariable(tkinter.Frame):
         if "orientation" in kwargs:
             orientation = kwargs["orientation"]
             del kwargs["orientation"]
+        reverse_orientation = tkinter.LEFT if orientation == tkinter.RIGHT else tkinter.RIGHT
+        anchor_lbl = 'w' if orientation == tkinter.LEFT else 'e'
+        anchor_var = 'e' if orientation == tkinter.LEFT else 'w'
 
         if "font" in kwargs:
             font = kwargs["font"]
@@ -136,11 +139,17 @@ class LabeledVariable(tkinter.Frame):
         cnf_lbl["text"] = label
         cnf_var["textvariable"] = self._variable
 
+        expand = False
+        if 'expand' in kwargs:
+            expand = kwargs['expand']
+            del kwargs['expand']
+        sticky = None if not expand else 'x'
+
         self.label = tkinter.Label(self, **cnf_lbl)
         self.variable = tkinter.Label(self, **cnf_var)
 
-        self.label.pack(side=orientation)
-        self.variable.pack(side=orientation)
+        self.label.pack(side=orientation, expand=False, anchor=anchor_lbl)
+        self.variable.pack(side=reverse_orientation, expand=expand, anchor=anchor_var, fill=sticky)
         self.configure(kwargs)
 
     def get_variable(self):
@@ -274,3 +283,38 @@ class CustomTextArea(tkinter.Text):
         if control(event):
             self.mark_set('insert', 'insert+1l')
             return "break"
+
+
+class VerticalScrolledFrame(tkinter.Frame):
+    def __init__(self, root: tkinter.Frame, *args, **kwargs):
+        tkinter.Frame.__init__(self, root, *args, **kwargs)
+
+        self._scrollbar = tkinter.Scrollbar(self, orient="vertical")
+        self._scrollbar.pack(fill='y', side="right", expand=0)
+
+        self._canvas = tkinter.Canvas(self, bd=0, highlightthickness=0, yscrollcommand=self._scrollbar.set)
+        self._canvas.pack(side='right', fill='both', expand=1)
+        self._scrollbar.config(command=self._canvas.yview)
+
+        self._canvas.xview_moveto(0)
+        self._canvas.yview_moveto(0)
+        self._interior = tkinter.Frame(self._canvas)
+        self._interior_id = self._canvas.create_window(0,0, window=self._interior, anchor='nw')
+
+        def _configure_interior(_):
+            size = (self._interior.winfo_reqwidth(), self._interior.winfo_reqheight())
+            self._canvas.config(scrollregion="0 0 {} {}".format(size[0], size[1]))
+            if self._interior.winfo_reqwidth() != self._canvas.winfo_width():
+                self._canvas.config(width=self._interior.winfo_reqwidth())
+        self._interior.bind("<Configure>", _configure_interior)
+
+        def _configure_canvas(_):
+            if self._interior.winfo_reqwidth() != self._canvas.winfo_width():
+                self._canvas.itemconfigure(self._interior_id, width=self._canvas.winfo_width())
+        self._canvas.bind("<Configure>", _configure_canvas)
+
+    def interior(self) -> tkinter.Frame:
+        return self._interior
+
+    def canvas(self) -> tkinter.Canvas:
+        return self._canvas

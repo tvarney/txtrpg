@@ -1,13 +1,12 @@
 
 """Composite widget definitions.
 
-This module defines composite tkinter widgets. These are more complicated than those found in the rpg.ui.widgets module.
+This module defines composite tk widgets. These are more complicated than those found in the rpg.ui.widgets module.
 In general, these define a logical grouping of widgets which have a very narrow focus (such as a menu bar or status
 bar).
 
 """
 
-from enum import IntEnum, unique
 import tkinter
 from rpg import util
 from rpg.ui import widgets
@@ -16,7 +15,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import actor
-    from typing import Any, Dict, List, Optional, Tuple
+    from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
 class RootMenuBar(tkinter.Menu):
@@ -62,29 +61,77 @@ class RootMenuBar(tkinter.Menu):
         self._console = ConsoleWindow(root, self._console_state)
 
 
-@unique
-class StatusBarItem(IntEnum):
-    """Index for each of the items in the StatusBar component.
+class StatusBarSection(tkinter.Frame):
+    def __init__(self, root: tkinter.Frame, name: 'Optional[str]', titlefnt=("Arial", 12, 'bold')):
+        tkinter.Frame.__init__(self, root)
+        self._name = name
+        self._lock = False
+        self._items = list()  # type: List[Tuple[str, tkinter.Widget, Optional[Callable]]]
+        self._removed = list()  # type: List[int]
+        self._added = list()  # type: List[Tuple[str, tkinter.Widget, Dict, Optional[Callable]]]
 
-    """
+        self._title = tkinter.Label(self, text=name, font=titlefnt) if name is not None and name != "" else None
+        if self._title is not None:
+            self._title.pack(side="top", anchor="w")
 
-    Name = 0
-    Strength = 1
-    Dexterity = 2
-    Constitution = 3
-    Agility = 4
-    Intelligence = 5
-    Wisdom = 6
-    Charisma = 7
-    Luck = 8
-    Health = 9
-    Mana = 10
-    Stamina = 11
-    Level = 12
-    Exp = 13
-    Money = 14
-    Time = 15
-    Date = 16
+    def lock(self):
+        self._lock = True
+
+    def unlock(self):
+        self._lock = False
+        if len(self._removed) > 0:
+            self._remove_all()
+        if len(self._added) > 0:
+            self._add_all()
+
+    def add_item(self, key: str, widget: tkinter.Widget, updatefn: 'Optional[Callable]'=None, **kwargs):
+        self._added.append((key, widget, kwargs, updatefn))
+        if not self._lock:
+            self._add_all()
+
+    def remove_item(self, key: str):
+        for i in range(len(self._items)):
+            if self._items[i][0] == key:
+                self._removed.append(i)
+
+        if not self._lock:
+            self._remove_all()
+
+    def get_item(self, key: str) -> 'Optional[tkinter.Widget]':
+        for wkey, widget, updatefn in self._items:
+            if wkey == key:
+                return widget
+
+        for wkey, widget, kwargs, updatefn in self._added:
+            if wkey == key:
+                return widget
+
+        return None
+
+    def update_widgets(self, player: 'actor.Actor', game: 'app.Game'):
+        for key, widget, updatefn in self._items:
+            if callable(updatefn):
+                updatefn(widget, player, game)
+
+    def _remove_all(self):
+        self._removed.sort()
+        last = len(self._items) + 1  # Guaranteed to be invalid - used to skip duplicate removals
+        for idx in self._removed:
+            if idx != last:
+                self._items.pop(idx)
+            last = idx
+
+    def _add_all(self):
+        for key, widget, kwargs, updatefn in self._added:
+            self._items.append((key, widget, updatefn))
+            if "expand" not in kwargs:
+                kwargs['expand'] = True
+            if kwargs['expand']:
+                kwargs['fill'] = 'x'
+            if 'anchor' not in kwargs:
+                kwargs['anchor'] = 'w'
+            widget.pack(**kwargs)
+        self._added.clear()
 
 
 # TODO: Make the StatusBar class more generally accessible to data packages
@@ -98,7 +145,7 @@ class StatusBar(tkinter.Frame):
 
     """
 
-    def __init__(self, root: tkinter.Frame, *args, **kwargs) -> None:
+    def __init__(self, root: tkinter.Frame, game: 'app.Game', *args, **kwargs) -> None:
         """Initialize and layout the StatusBar.
 
         :param root: The root frame that this StatusBar is to be added to
@@ -106,61 +153,79 @@ class StatusBar(tkinter.Frame):
         :param kwargs: Keyword arguments for the main frame
         """
         tkinter.Frame.__init__(self, root, *args, **kwargs)
+        self._game = game
         self._font_name = ('Arial', 10, 'bold')
         self._font_header = ('Arial', 9, 'bold')
         self._font_item = ('Arial', 7)
-        self._widgets = dict()  # type: Dict[StatusBarItem, Tuple[tkinter.Label, tkinter.Label, tkinter.StringVar]]
 
-        var_name = tkinter.StringVar()
-        w_name = widgets.LabeledVariable(self, "Name:", var_name, font=self._font_name)
-        w_name.pack(side=tkinter.TOP, fill='x')
-        self._widgets[StatusBarItem.Name] = (w_name.label, w_name.variable, var_name)
+        self._sections = dict()  # type: Dict[str, StatusBarSection]
 
-        self._add_section("Core Stats", [StatusBarItem.Strength, StatusBarItem.Dexterity, StatusBarItem.Constitution,
-                                         StatusBarItem.Agility, StatusBarItem.Intelligence, StatusBarItem.Wisdom,
-                                         StatusBarItem.Charisma, StatusBarItem.Luck])
-        self._add_section("Combat Stats", [StatusBarItem.Health, StatusBarItem.Mana, StatusBarItem.Stamina])
-        self._add_section("Advancement", [StatusBarItem.Level, StatusBarItem.Exp, StatusBarItem.Money])
-        self._add_section("World", [StatusBarItem.Time, StatusBarItem.Date])
+        header = self.add_section("header", None)
+        header.add_item("name", widgets.LabeledVariable(header, "Name:", font=self._font_name),
+                        lambda w, p, g: w.get_variable().set(p.name()))
 
-    def _add_section(self, header_text: str, items: 'List[StatusBarItem]', side: str=tkinter.TOP) -> None:
+        def _stat_up(key: str, short: bool=True):
+            def _update_stat(w, p, _):
+                # TODO: Set the color of the variable label instance
+                w.get_variable().set(getattr(p.stats, key).string(short))
+            return _update_stat
+
+        def create_stat(parent, label):
+            return widgets.LabeledVariable(parent, label, font=self._font_item, expand=True)
+
+        core = self.add_section("core", "Core Stats")
+        core.add_item("str", create_stat(core, "Strength"), _stat_up("strength"), expand=True)
+        core.add_item("dex", create_stat(core, "Dexterity"), _stat_up("dexterity"), expand=True)
+        core.add_item("con", create_stat(core, "Constitution"), _stat_up("constitution"), expand=True)
+        core.add_item("agl", create_stat(core, "Agility"), _stat_up("agility"), expand=True)
+        core.add_item("int", create_stat(core, "Intelligence"), _stat_up("intelligence"), expand=True)
+        core.add_item("wis", create_stat(core, "Wisdom"), _stat_up("wisdom"), expand=True)
+        core.add_item("cha", create_stat(core, "Charisma"), _stat_up("charisma"), expand=True)
+        core.add_item("lck", create_stat(core, "Luck"), _stat_up("luck"), expand=True)
+        
+        combat = self.add_section("combat", "Combat Stats")
+        combat.add_item("hp", create_stat(combat, "Health"), _stat_up("health", False), expand=True)
+        combat.add_item("mp", create_stat(combat, "Mana"), _stat_up("mana", False), expand=True)
+        combat.add_item("st", create_stat(combat, "Stamina"), _stat_up("stamina", False), expand=True)
+
+        adv = self.add_section("advancement", "Advancement")
+        adv.add_item("level", widgets.LabeledVariable(adv, "Level", font=self._font_item))
+        adv.add_item("exp", widgets.LabeledVariable(adv, "Exp", font=self._font_item))
+        adv.add_item("Money", widgets.LabeledVariable(adv, "Money", font=self._font_item))
+
+        world = self.add_section("world", "World")
+        world.add_item("time", widgets.LabeledVariable(world, "Time", font=self._font_item))
+        world.add_item("date", widgets.LabeledVariable(world, "Date", font=self._font_item))
+
+        controls = self.add_section("controls", None, side='bottom')
+        controls.add_item("inventory", widgets.Button(controls, "Inventory", self._action_inventory))
+
+    def _action_inventory(self):
+        self._game.stack.push("InventoryView")
+
+    def add_section(self, key: str, header: 'Optional[str]', side: str='top') -> StatusBarSection:
         """Add a section to the StatusBar.
 
-        :param header_text: The text of the header
-        :param items: The list of items to add to this section
+        :param key: The key used to look this section up from
+        :param header: The section to add
         :param side: How to lay this section out
         """
-        section = tkinter.Frame(self)
-        lbl = tkinter.Label(section, text=header_text, font=self._font_header)
-        lbl.grid(row=0, column=0, columnspan=2, sticky='WE')
-        for index, item in enumerate(items):
-            variable = tkinter.StringVar()
-            lbl = tkinter.Label(section, text=item.name, anchor='w', font=self._font_item)
-            var = tkinter.Label(section, textvariable=variable, font=self._font_item)
+        section = StatusBarSection(self, header, self._font_header)
+        section.pack(side=side, expand=True, anchor='w', fill='x')
+        self._sections[key] = section
+        return section
 
-            lbl.grid(row=index+1, column=0, sticky='WE', padx=5)
-            var.grid(row=index+1, column=1, sticky='E', padx=5)
-            self._widgets[item] = (lbl, var, variable)
+    def get_section(self, key: str) -> 'Optional[StatusBarSection]':
+        return self._sections.get(key, None)
 
-        section.pack(side=side)
-
-    def update_actor(self, _actor: 'actor.Actor') -> None:
+    def update_widgets(self, _actor: 'actor.Actor', _game: 'app.Game') -> None:
         """Update the actor attribute fields.
 
         :param _actor: The actor to get values from
+        :param _game: The rpg.app.Game instance
         """
-        self._widgets[StatusBarItem.Name][2].set(_actor.name())
-        self._widgets[StatusBarItem.Strength][2].set(_actor.stats.strength.string())
-        self._widgets[StatusBarItem.Dexterity][2].set(_actor.stats.dexterity.string())
-        self._widgets[StatusBarItem.Constitution][2].set(_actor.stats.constitution.string())
-        self._widgets[StatusBarItem.Agility][2].set(_actor.stats.agility.string())
-        self._widgets[StatusBarItem.Intelligence][2].set(_actor.stats.intelligence.string())
-        self._widgets[StatusBarItem.Wisdom][2].set(_actor.stats.wisdom.string())
-        self._widgets[StatusBarItem.Charisma][2].set(_actor.stats.charisma.string())
-        self._widgets[StatusBarItem.Luck][2].set(_actor.stats.luck.string())
-        self._widgets[StatusBarItem.Health][2].set(_actor.stats.health.string())
-        self._widgets[StatusBarItem.Mana][2].set(_actor.stats.mana.string())
-        self._widgets[StatusBarItem.Stamina][2].set(_actor.stats.stamina.string())
+        for section in self._sections.values():
+            section.update_widgets(_actor, _game)
 
 
 class AttributeWidget(tkinter.Frame):
