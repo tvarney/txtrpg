@@ -30,7 +30,8 @@ class PlayersHouse(location.Location):
         return "This is your house"
 
     def options(self, game: 'app.Game'):
-        return _options.OptionList((_options.Option("Leave", event.LocationEvent("prologue.town_square", 0)), 0, 0))
+        return _options.OptionList((_options.Option("Leave", event.LocationEvent("prologue.town_square", 0)), 0, 0),
+                                   (_options.Option("Test Fight", event.FightStartEvent('mob.goblin')), 0, 1))
 
     def start(self, game: 'app.Game'):
         pass
@@ -48,6 +49,9 @@ class TownSquare(location.BasicLocationImpl):
 
     def locations(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
         return [("Market", "prologue.market", 0)]
+
+    def features(self, game: 'app.Game') -> 'Optional[List[Tuple[str, str, int]]]':
+        return [("Your House", "prologue.players_house", 0)]
 
 
 class Market(location.BasicLocationImpl):

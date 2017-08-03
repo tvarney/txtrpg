@@ -172,18 +172,13 @@ class LocationEvent(GameEvent):
 
 class FightEndEvent(GameEvent):
     def apply(self, game: 'app.Game'):
-        view = game.stack.current()  # type: views.GameView
-        if view.is_game_view():
-            view.fight_end()
+        game.state.stop_fight()
 
 
 class FightStartEvent(GameEvent):
-    def __init__(self, monster: 'actor.Monster'):
+    def __init__(self, monster: str):
         GameEvent.__init__(self)
         self._monster = monster
 
     def apply(self, game: 'app.Game'):
-        view = game.stack.current()  # type: views.GameView
-        if view.is_game_view():
-            view.fight_start(self._monster)
-
+        game.state.set_fight(self._monster)

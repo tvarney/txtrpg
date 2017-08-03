@@ -113,7 +113,7 @@ class GameData(object):
         self._state = GameState.Location
         view = self._game_object.stack.current()  # type: views.GameView
         if view.is_game_view():
-            view.fight_end(None)
+            view.fight_end()
 
         self.resume_display()
 
