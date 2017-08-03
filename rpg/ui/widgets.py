@@ -129,6 +129,7 @@ class LabeledVariable(tkinter.Frame):
         reverse_orientation = tkinter.LEFT if orientation == tkinter.RIGHT else tkinter.RIGHT
         anchor_lbl = 'w' if orientation == tkinter.LEFT else 'e'
         anchor_var = 'e' if orientation == tkinter.LEFT else 'w'
+        cnf_var['anchor'] = anchor_var  # Anchor is used to place the text inside the label
 
         if "font" in kwargs:
             font = kwargs["font"]
@@ -149,7 +150,7 @@ class LabeledVariable(tkinter.Frame):
         self.variable = tkinter.Label(self, **cnf_var)
 
         self.label.pack(side=orientation, expand=False, anchor=anchor_lbl)
-        self.variable.pack(side=reverse_orientation, expand=expand, anchor=anchor_var, fill=sticky)
+        self.variable.pack(side=reverse_orientation, expand=expand, fill=sticky)
         self.configure(kwargs)
 
     def get_variable(self):
