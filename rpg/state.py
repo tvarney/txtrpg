@@ -48,6 +48,7 @@ class GameData(object):
         self._add_loc_text = False  # type: bool
 
         self.player = actor.Player()  # type: actor.Player
+        self.monster = None  # type: Optional[actor.NonPlayerCharacter]
         self.location = None  # type: Optional[location.Location]
         self.fight = None  # type: None
         self.dialog = None  # type: Optional[resource.Dialog]
@@ -101,12 +102,12 @@ class GameData(object):
             self.dialog = instance  # type: resource.Dialog
             self._display(self.dialog)
 
-    def set_fight(self, monster_template) -> None:
+    def set_fight(self, monster_id: str) -> None:
         self._state = GameState.Fight
+        self.monster = self.resources.get(resource.ResourceType.Actor, monster_id)
         view = self._game_object.stack.current()  # type: views.GameView
         if view.is_game_view():
-            view.fight_start(actor.Monster("Goblin"))
-            view.set_text("You are fighting a Goblin.")
+            view.fight_start(self.monster)
 
     def stop_fight(self) -> None:
         self._state = GameState.Location

@@ -5,6 +5,7 @@
 
 import os
 import os.path
+import random
 from rpg import state, util
 from rpg.io import log, package
 from rpg.ui import components, views
@@ -39,6 +40,7 @@ class Game(object):
         self.stack = views.ViewManager(self)  # type: views.ViewManager
         self.state = state.GameData(self)  # type: state.GameData
         self.log = log.Log("./log.txt", True)  # type: log.Log
+        self.random = random.Random()
 
     def root(self) -> 'Optional[tkinter.Frame]':
         """Get the root tkinter frame.

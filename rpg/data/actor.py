@@ -47,13 +47,6 @@ class Actor(resource.Resource):
             self._name = new_name
         return self._name
 
-    @abstractmethod
-    def get_intro_text(self):
-        raise NotImplementedError()
-
-    def get_dialog(self, game: 'app.Game') -> str:
-        return ""
-
 
 class Player(Actor):
 
@@ -67,9 +60,6 @@ class Player(Actor):
         """Create a new Player instance."""
         Actor.__init__(self, "builtin.player", "")
         self.attribute_points = 0  # type: int
-
-    def get_intro_text(self):
-        return ""
 
     def calculate_secondaries(self):
         """Calculate the health, mana, and stamina of the player from the primary stats.
@@ -111,10 +101,11 @@ class NonPlayerCharacter(Actor):
         Actor.__init__(self, resource_id, name, **kwargs)
 
     @abstractmethod
-    def get_intro_text(self) -> str:
+    def get_intro_text(self, game: 'app.Game') -> str:
         raise NotImplementedError()
 
-    def get_dialog(self, game) -> 'Optional[str]':
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def get_dialog(self, game: 'app.Game') -> 'Optional[str]':
         """Get a dialog resource_id used to interact with this NPC.
 
         If the return value of the dialog is None, then "This NPC does not want to talk to you" dialog is automatically
@@ -123,4 +114,4 @@ class NonPlayerCharacter(Actor):
         :param game: The app.Game instance of the current game
         :return: A Dialog resource_id to display, or None if the NPC does not offer a dialog
         """
-        raise NotImplementedError()
+        return None
