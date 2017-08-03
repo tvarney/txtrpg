@@ -14,7 +14,6 @@ A View must be decorated with this decorator to be available for push/swap opera
 
 from abc import ABCMeta, abstractmethod
 import tkinter
-from rpg.ui import components, widgets
 
 import typing
 if typing.TYPE_CHECKING:
@@ -97,6 +96,7 @@ class View(tkinter.Frame, metaclass=ABCMeta):
         """
         pass
 
+    # noinspection PyMethodMayBeStatic
     def pause(self):
         """Handle anything that needs to happen each time the view is covered by another view.
 
@@ -106,6 +106,7 @@ class View(tkinter.Frame, metaclass=ABCMeta):
         """
         pass
 
+    # noinspection PyMethodMayBeStatic
     def stop(self):
         """Handle anything that needs to happen each time the view is removed from the stack.
 
@@ -119,7 +120,7 @@ class View(tkinter.Frame, metaclass=ABCMeta):
         The stop() method will be called on the MainMenu() instance despite there being an active 'instance' of it
         further down the stack. If this is an issue, then the class should track its state in some manner.
 
-        The default implemenation of this method does not do anything.
+        The default implementation of this method does not do anything.
 
         """
         pass

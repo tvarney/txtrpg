@@ -110,7 +110,7 @@ class Attribute(object):
         self._value += increment
 
     def decrease(self, decrement: int=1):
-        """Descrease the value of this attribute.
+        """Decrease the value of this attribute.
 
         :param decrement: The amount to decrease the value of this attribute by
         """

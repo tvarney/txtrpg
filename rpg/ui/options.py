@@ -73,9 +73,9 @@ class OptionFrame(tkinter.Frame):
         self.bind("<Configure>", self._on_resize)
         self._children = list()  # type: List[Tuple[widgets.Button, int, int]]
         for row in range(len(opts)):
-            olist = opts[row]
-            for col in range(len(olist)):
-                opt = olist[col]
+            option_list = opts[row]
+            for col in range(len(option_list)):
+                opt = option_list[col]
                 if opt is not None:
                     self._children.append((opt.generate(game, self), row, col))
 

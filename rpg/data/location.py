@@ -86,7 +86,7 @@ class BasicLocation(Location):
         """Get the OptionList instance used to set the options for this location.
 
         This method uses the OptionList.generate_paged_list() method to create standard options for travel locations,
-        feature locations, and NPCs present at the location. If the resepctive method returns None, then that button is
+        feature locations, and NPCs present at the location. If the respective method returns None, then that button is
         not created.
 
         :param game: The app.Game instance displaying this location

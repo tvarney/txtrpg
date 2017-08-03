@@ -110,6 +110,10 @@ class NonPlayerCharacter(Actor):
         """
         Actor.__init__(self, resource_id, name, **kwargs)
 
+    @abstractmethod
+    def get_intro_text(self) -> str:
+        raise NotImplementedError()
+
     def get_dialog(self, game) -> 'Optional[str]':
         """Get a dialog resource_id used to interact with this NPC.
 

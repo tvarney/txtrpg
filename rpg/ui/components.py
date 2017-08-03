@@ -62,7 +62,7 @@ class RootMenuBar(tkinter.Menu):
 
 
 class StatusBarSection(tkinter.Frame):
-    def __init__(self, root: tkinter.Frame, name: 'Optional[str]', titlefnt=("Arial", 12, 'bold')):
+    def __init__(self, root: tkinter.Frame, name: 'Optional[str]', title_fnt=("Arial", 12, 'bold')):
         tkinter.Frame.__init__(self, root)
         self._name = name
         self._lock = False
@@ -70,7 +70,7 @@ class StatusBarSection(tkinter.Frame):
         self._removed = list()  # type: List[int]
         self._added = list()  # type: List[Tuple[str, tkinter.Widget, Dict, Optional[Callable]]]
 
-        self._title = tkinter.Label(self, text=name, font=titlefnt) if name is not None and name != "" else None
+        self._title = tkinter.Label(self, text=name, font=title_fnt) if name is not None and name != "" else None
         if self._title is not None:
             self._title.pack(side="top", anchor="w")
 
@@ -84,8 +84,8 @@ class StatusBarSection(tkinter.Frame):
         if len(self._added) > 0:
             self._add_all()
 
-    def add_item(self, key: str, widget: tkinter.Widget, updatefn: 'Optional[Callable]'=None, **kwargs):
-        self._added.append((key, widget, kwargs, updatefn))
+    def add_item(self, key: str, widget: tkinter.Widget, update_fn: 'Optional[Callable]'=None, **kwargs):
+        self._added.append((key, widget, kwargs, update_fn))
         if not self._lock:
             self._add_all()
 
@@ -98,20 +98,20 @@ class StatusBarSection(tkinter.Frame):
             self._remove_all()
 
     def get_item(self, key: str) -> 'Optional[tkinter.Widget]':
-        for wkey, widget, updatefn in self._items:
+        for wkey, widget, update_fn in self._items:
             if wkey == key:
                 return widget
 
-        for wkey, widget, kwargs, updatefn in self._added:
+        for wkey, widget, kwargs, update_fn in self._added:
             if wkey == key:
                 return widget
 
         return None
 
     def update_widgets(self, player: 'actor.Actor', game: 'app.Game'):
-        for key, widget, updatefn in self._items:
-            if callable(updatefn):
-                updatefn(widget, player, game)
+        for key, widget, update_fn in self._items:
+            if callable(update_fn):
+                update_fn(widget, player, game)
 
     def _remove_all(self):
         self._removed.sort()
@@ -122,8 +122,8 @@ class StatusBarSection(tkinter.Frame):
             last = idx
 
     def _add_all(self):
-        for key, widget, kwargs, updatefn in self._added:
-            self._items.append((key, widget, updatefn))
+        for key, widget, kwargs, update_fn in self._added:
+            self._items.append((key, widget, update_fn))
             if "expand" not in kwargs:
                 kwargs['expand'] = True
             if kwargs['expand']:
@@ -459,6 +459,8 @@ class ConsoleState(object):
             self.clear()
             return
 
+        # The exception here is thrown away on purpose
+        # noinspection PyBroadException
         try:
             return eval(code_string, self.environ)
         except Exception as _:
@@ -547,8 +549,12 @@ class ConsoleWindow(tkinter.Toplevel):
         return "break"
 
     def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
-        self._txtOutput.insert("end", sep.join(str(obj) for obj in objects) + end, "o")
+        txt_result = sep.join(str(obj) for obj in objects) + end
+        self._txtOutput.insert("end", txt_result, "o")
+        if file is not None:
+            file.write(txt_result)
 
+    @staticmethod
     def _raise_exception(self, *args, **kwargs):
         raise Exception("function not available")
 

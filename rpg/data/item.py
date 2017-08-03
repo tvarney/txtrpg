@@ -43,8 +43,8 @@ class EquipSlot(IntEnum):
     Legs = 7        # Legs-Middle (armor)
     Pants = 8       # Legs-Under (pants)
     Skirt = 9       # Legs-Alternate (skirts/kilts)
-    Feet = 10       # Boots, shoes, sandles
-    Hands = 11      # Gloves, Guantlets
+    Feet = 10       # Boots, shoes, sandals
+    Hands = 11      # Gloves, Gauntlets
     Back = 12       # Capes/Backpacks (Wings, lol)
     Quiver = 13
     Ring = 14
@@ -71,7 +71,7 @@ class WeaponType(IntEnum):
         Spear: Average speed, average damage, disadvantages opponents with swords or daggers
         Halberd: Low speed, high damage, disadvantages opponents with swords or daggers
         Whip: Very fast, low damage, inflicts stun occasionally on hit
-        Staff: Fast, low damage, spellcasting bonus
+        Staff: Fast, low damage, spell casting bonus
 
     """
 

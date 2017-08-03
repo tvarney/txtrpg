@@ -1,6 +1,6 @@
 
 from rpg import event
-from rpg.data import actor, location, resource
+from rpg.data import location, resource
 from rpg.ui import options as _options
 
 import typing

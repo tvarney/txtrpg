@@ -7,7 +7,7 @@ package listing, the logging class, and various other bits defined in the rpg.ap
 """
 
 from enum import IntEnum, unique
-from rpg.data import actor, resource, resources
+from rpg.data import actor, location, resource, resources
 
 import typing
 if typing.TYPE_CHECKING:
@@ -48,7 +48,7 @@ class GameData(object):
         self._add_loc_text = False  # type: bool
 
         self.player = actor.Player()  # type: actor.Player
-        self.location = None  # type: Optional[resource.Location]
+        self.location = None  # type: Optional[location.Location]
         self.fight = None  # type: None
         self.dialog = None  # type: Optional[resource.Dialog]
         self.time = None  # type: None
@@ -74,12 +74,12 @@ class GameData(object):
 
         :param location_id: The resource_id of the new location
         """
-        instance = self.resources.get(resource.ResourceType.Location, location_id)  # type: resource.Location
+        instance = self.resources.get(resource.ResourceType.Location, location_id)  # type: location.Location
         if instance is None:
             self._game_object.log.error("Could not find location {}", location_id)
             return
         self._state = GameState.Location
-        self.location = instance  # type: resource.Location
+        self.location = instance  # type: location.Location
         self._add_loc_text = True
         self.location.start(self._game_object)
         # Only display if the current state is GameState.Location and our instance is the correct instance

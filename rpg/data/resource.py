@@ -16,6 +16,7 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import resources
+    from rpg.ui import options
     from typing import Callable, List, Optional, Tuple
 
 
