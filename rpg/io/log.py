@@ -14,10 +14,11 @@ class LogLevel(IntEnum):
     """
 
     Debug = 0
-    Info = 1
-    Warning = 2
-    Error = 3
-    Fatal = 4
+    Verbose = 1
+    Info = 2
+    Warning = 3
+    Error = 4
+    Fatal = 5
 
 
 class Log(object):
@@ -26,14 +27,22 @@ class Log(object):
 
     """
 
-    def __init__(self, file_path: str, echo: bool=False, level: LogLevel=LogLevel.Info) -> None:
+    _level_lookup = {
+        'debug': LogLevel.Debug, 'verbose': LogLevel.Verbose, 'info': LogLevel.Info, 'warning': LogLevel.Warning,
+        'error': LogLevel.Error, 'fatal': LogLevel.Fatal
+    }
+
+    @classmethod
+    def parse_level(cls, level_str: 'str') -> 'Optional[LogLevel]':
+        return Log._level_lookup.get(level_str.lower(), None)
+
+    def __init__(self, echo: bool=False, level: LogLevel=LogLevel.Info) -> None:
         """Initialize the Log object
 
-        :param file_path: The path name of the log file to write to
         :param echo: If this log should echo statements to standard output
         :param level: The logging level threshold
         """
-        self._file_path = file_path  # type: str
+        self._file_path = None  # type: Optional[str]
         self._echo = echo  # type: bool
         self._level = level  # type: LogLevel
         self._fp = None
@@ -58,12 +67,14 @@ class Log(object):
             self._echo = on
         return self._echo
 
-    def open(self, append: bool=True) -> None:
+    def open(self, file_path: 'str', append: bool=True) -> None:
         """Open the log file for writing.
 
+        :param file_path: The path of the file to open
         :param append: If the log file should be opened for appending
         """
         if self._fp is None:
+            self._file_path = file_path
             self._fp = open(self._file_path, "a" if append else "w")
 
     def close(self) -> None:

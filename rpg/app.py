@@ -7,7 +7,7 @@ import os
 import os.path
 import random
 from rpg import state, util
-from rpg.io import log, package
+from rpg.io import configuration, log, package
 from rpg.ui import components, views
 import sys
 import tkinter
@@ -39,8 +39,9 @@ class Game(object):
 
         self.stack = views.ViewManager(self)  # type: views.ViewManager
         self.state = state.GameData(self)  # type: state.GameData
-        self.log = log.Log("./log.txt", True)  # type: log.Log
+        self.log = log.Log()  # type: log.Log
         self.random = random.Random()
+        self._config = configuration.Config()
 
     def root(self) -> 'Optional[tkinter.Frame]':
         """Get the root tkinter frame.
@@ -83,9 +84,28 @@ class Game(object):
 
         :return: The return value specified by the first call to Application.quit()
         """
-        self.log.open()
-        self.log.level(log.LogLevel.Debug)
+        # Read the configuration
+        errstr = self._config.load()
 
+        # Configure the log
+        append = self._config.get('log', 'append', default=True)  # type: bool
+        self.log.open(self._config.get('log', 'file', default="./log.txt"), append)
+
+        level_str = self._config.get('log', 'level')  # type: str
+        if level_str is not None:
+            level = log.Log.parse_level(level_str)
+            if level is None:
+                self.log.error("Invalid value for config key log.level: {}", level_str)
+            else:
+                self.log.level(level)
+
+        self.log.echo(self._config.get('log', 'echo', default=False))
+
+        # If there were any errors reading the configuration, log them now
+        if errstr is not None:
+            self.log.error("Errors in configuration:\n{}", errstr)
+
+        # Initialize the root window
         self._root = tkinter.Tk()
         # Set a minimum size
         # TODO: save the geometry in some settings file somewhere and use the last saved size

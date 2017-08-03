@@ -114,7 +114,7 @@ class GameData(object):
         view = self._game_object.stack.current()  # type: views.GameView
         if view.is_game_view():
             view.fight_end()
-
+        
         self.resume_display()
 
     def game_view(self) -> 'Optional[views.GameView]':
