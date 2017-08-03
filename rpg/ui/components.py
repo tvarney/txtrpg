@@ -134,9 +134,6 @@ class StatusBarSection(tkinter.Frame):
         self._added.clear()
 
 
-# TODO: Make the StatusBar class more generally accessible to data packages
-#     : If a package adds a variable (stored generally in rpg.state.GameData.variables) that should be displayed
-#     : there should be some method for the package to hook into the StatusBar and add new sections/fields
 class StatusBar(tkinter.Frame):
 
     """A tkinter.Frame holding a collection of status display widgets for actor instances.
@@ -144,6 +141,51 @@ class StatusBar(tkinter.Frame):
     This component is intended to display the attributes of the player actor.
 
     """
+
+    @classmethod
+    def default(cls, root: tkinter.Frame, game: 'app.Game', *args, **kwargs) -> 'StatusBar':
+        status_bar = StatusBar(root, game, *args, **kwargs)
+
+        # The header section holds the players' name
+        header = status_bar.add_section("header", None)
+        header.add_item("name", widgets.LabeledVariable(header, "Name:", font=status_bar._font_name),
+                        lambda w, p, g: w.get_variable().set(p.name()))
+
+        def _stat_up(key: str, short: bool = True):
+            def _update_stat(w, p, _):
+                # TODO: Set the color of the variable label instance
+                w.get_variable().set(getattr(p.stats, key).string(short))
+
+            return _update_stat
+
+        def create_stat(parent, label):
+            return widgets.LabeledVariable(parent, label, font=status_bar._font_item, expand=True)
+
+        core = status_bar.add_section("core", "Core Stats")
+        core.add_item("str", create_stat(core, "Strength"), _stat_up("strength"), expand=True)
+        core.add_item("dex", create_stat(core, "Dexterity"), _stat_up("dexterity"), expand=True)
+        core.add_item("con", create_stat(core, "Constitution"), _stat_up("constitution"), expand=True)
+        core.add_item("agl", create_stat(core, "Agility"), _stat_up("agility"), expand=True)
+        core.add_item("int", create_stat(core, "Intelligence"), _stat_up("intelligence"), expand=True)
+        core.add_item("wis", create_stat(core, "Wisdom"), _stat_up("wisdom"), expand=True)
+        core.add_item("cha", create_stat(core, "Charisma"), _stat_up("charisma"), expand=True)
+        core.add_item("lck", create_stat(core, "Luck"), _stat_up("luck"), expand=True)
+
+        combat = status_bar.add_section("combat", "Combat Stats")
+        combat.add_item("hp", create_stat(combat, "Health"), _stat_up("health", False), expand=True)
+        combat.add_item("mp", create_stat(combat, "Mana"), _stat_up("mana", False), expand=True)
+        combat.add_item("st", create_stat(combat, "Stamina"), _stat_up("stamina", False), expand=True)
+
+        adv = status_bar.add_section("advancement", "Advancement")
+        adv.add_item("level", widgets.LabeledVariable(adv, "Level", font=status_bar._font_item))
+        adv.add_item("exp", widgets.LabeledVariable(adv, "Exp", font=status_bar._font_item))
+        adv.add_item("Money", widgets.LabeledVariable(adv, "Money", font=status_bar._font_item))
+
+        world = status_bar.add_section("world", "World")
+        world.add_item("time", widgets.LabeledVariable(world, "Time", font=status_bar._font_item))
+        world.add_item("date", widgets.LabeledVariable(world, "Date", font=status_bar._font_item))
+
+        return status_bar
 
     def __init__(self, root: tkinter.Frame, game: 'app.Game', *args, **kwargs) -> None:
         """Initialize and layout the StatusBar.
@@ -159,49 +201,6 @@ class StatusBar(tkinter.Frame):
         self._font_item = ('Arial', 7)
 
         self._sections = dict()  # type: Dict[str, StatusBarSection]
-
-        header = self.add_section("header", None)
-        header.add_item("name", widgets.LabeledVariable(header, "Name:", font=self._font_name),
-                        lambda w, p, g: w.get_variable().set(p.name()))
-
-        def _stat_up(key: str, short: bool=True):
-            def _update_stat(w, p, _):
-                # TODO: Set the color of the variable label instance
-                w.get_variable().set(getattr(p.stats, key).string(short))
-            return _update_stat
-
-        def create_stat(parent, label):
-            return widgets.LabeledVariable(parent, label, font=self._font_item, expand=True)
-
-        core = self.add_section("core", "Core Stats")
-        core.add_item("str", create_stat(core, "Strength"), _stat_up("strength"), expand=True)
-        core.add_item("dex", create_stat(core, "Dexterity"), _stat_up("dexterity"), expand=True)
-        core.add_item("con", create_stat(core, "Constitution"), _stat_up("constitution"), expand=True)
-        core.add_item("agl", create_stat(core, "Agility"), _stat_up("agility"), expand=True)
-        core.add_item("int", create_stat(core, "Intelligence"), _stat_up("intelligence"), expand=True)
-        core.add_item("wis", create_stat(core, "Wisdom"), _stat_up("wisdom"), expand=True)
-        core.add_item("cha", create_stat(core, "Charisma"), _stat_up("charisma"), expand=True)
-        core.add_item("lck", create_stat(core, "Luck"), _stat_up("luck"), expand=True)
-        
-        combat = self.add_section("combat", "Combat Stats")
-        combat.add_item("hp", create_stat(combat, "Health"), _stat_up("health", False), expand=True)
-        combat.add_item("mp", create_stat(combat, "Mana"), _stat_up("mana", False), expand=True)
-        combat.add_item("st", create_stat(combat, "Stamina"), _stat_up("stamina", False), expand=True)
-
-        adv = self.add_section("advancement", "Advancement")
-        adv.add_item("level", widgets.LabeledVariable(adv, "Level", font=self._font_item))
-        adv.add_item("exp", widgets.LabeledVariable(adv, "Exp", font=self._font_item))
-        adv.add_item("Money", widgets.LabeledVariable(adv, "Money", font=self._font_item))
-
-        world = self.add_section("world", "World")
-        world.add_item("time", widgets.LabeledVariable(world, "Time", font=self._font_item))
-        world.add_item("date", widgets.LabeledVariable(world, "Date", font=self._font_item))
-
-        controls = self.add_section("controls", None, side='bottom')
-        controls.add_item("inventory", widgets.Button(controls, "Inventory", self._action_inventory))
-
-    def _action_inventory(self):
-        self._game.stack.push("InventoryView")
 
     def add_section(self, key: str, header: 'Optional[str]', side: str='top') -> StatusBarSection:
         """Add a section to the StatusBar.

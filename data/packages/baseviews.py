@@ -150,7 +150,10 @@ class GameViewImpl(views.GameView):
 
         self.txtContent = widgets.StaticTextArea(self)
         self.lblTitle = tkinter.Label(self, textvariable=self._var_title, font=('arial', 18, 'bold'))
-        self.frmStatus = components.StatusBar(self, game)
+        self.frmStatus = components.StatusBar.default(self, game)  # pycharm warns about this; it's fine (I checked)
+        controls = self.frmStatus.add_section("controls", None, side='bottom')
+        controls.add_item("inventory", widgets.Button(controls, "Inventory", self._action_inventory))
+
         self.frmOptions = tkinter.Frame(self)
         self.frmMonster = components.CombatStatusBar(self)
 
@@ -163,6 +166,9 @@ class GameViewImpl(views.GameView):
         self.grid_rowconfigure(1, weight=1)
 
         self._fight_options = options.OptionList((options.Option("Run Away", event.FightEndEvent()), 0, 0))
+
+    def _action_inventory(self):
+        self._game_obj.log.debug("Pressed Inventory Button")
 
     def set_title(self, text: str, update_status_bar: bool=False) -> None:
         """Set the displayed title to the given text.
