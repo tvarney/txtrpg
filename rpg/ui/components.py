@@ -589,3 +589,20 @@ class ConsoleWindow(tkinter.Toplevel):
                     if hist_line != 0:
                         self._txtInput.insert('1.0', self._state.history[self._hist_line])
             return "break"
+
+
+class InventoryItem(tkinter.Frame):
+    def __init__(self, root: tkinter.Frame, *args, **kwargs):
+        tkinter.Frame.__init__(self, root, *args, **kwargs)
+
+
+class InventoryFrame(tkinter.Frame):
+    def __init__(self, root: tkinter.Frame, *args, **kwargs):
+        tkinter.Frame.__init__(self, root, *args, **kwargs)
+        self._scroll = widgets.VerticalScrolledFrame
+
+    def build(self, player: 'actor.Player'):
+        pass
+
+
+

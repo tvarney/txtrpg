@@ -5,7 +5,7 @@ from rpg.data import item, resource
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
-    from typing import Dict, List, Optional
+    from typing import List, Optional
 
 
 class ItemInstance(object):
@@ -16,16 +16,21 @@ class ItemInstance(object):
             self.bind(game)
 
     def bind(self, game: 'app.Game') -> bool:
-        if self._item_obj is not None:
-            if game.state.state() != state.GameState.Invalid:
-                obj = game.state.resources.get(resource.ResourceType.Item, self._resource_id)
-                if obj is not None:
-                    self._item_obj = obj
-                    return True
+        if self._item_obj is None:
+            obj = game.state.resources.get(resource.ResourceType.Item, self._resource_id)
+            if obj is not None:
+                self._item_obj = obj
+                return True
         return False
+
+    def unbind(self):
+        self._item_obj = None
 
     def item(self) -> 'Optional[item.Item]':
         return self._item_obj
+
+    def resource_id(self) -> str:
+        return self._resource_id
 
 
 class ItemStack(object):
@@ -54,14 +59,100 @@ class ItemStack(object):
 class Inventory(object):
     def __init__(self):
         self._weight = 0.0  # type: float
-        self._slots = dict()  # type: Dict[str, ItemStack]
+        self._slots = list()  # type: List[ItemStack]
         self._equipped = [None for _ in range(item.EquipSlot.COUNT)]  # type: List['item.Instance']
+        self._game = None  # type: Optional[app.Game]
+        self._max_slots = 100
 
-    def add(self, item_instance: 'item.Item') -> None:
+    def bind(self, game: 'app.Game'):
+        if self._game is not None:
+            self.unbind()
+        self._game = game
+        newslots = list()  # type: List[ItemStack]
+        for item_stack in self._slots:
+            item_stack.item().bind(game)
+            if item_stack.item().item() is not None:
+                if item_stack.item().item().stackable():
+                    newslots.append(item_stack)
+                else:
+                    count = min(item_stack.count(), self._max_slots - len(newslots))
+                    for i in range(count):
+                        newslots.append(ItemStack(item_stack.item(), 1))
+                    if len(newslots) >= self._max_slots:
+                        return
+            else:
+                game.log.error("Could not find item with resource_id: {}", item_stack.item().resource_id())
+        self._slots = newslots
+
+    def unbind(self):
+        self._game = None
+        for stack in self._slots:
+            stack.item().unbind()
+
+    def add(self, item_id, count: int = 1) -> int:
+        if count <= 0:
+            return
+
+        item_instance = ItemInstance(item_id)
+        if self._game is not None:
+            item_instance.bind(self._game)
+            if item_instance.item() is None:
+                self._game.log.error("Could not find item with resource_id: {}", item_instance.resource_id())
+                return 0
+            if item_instance.item().stackable():
+                for carried_item in self._slots:
+                    if carried_item.item().resource_id() == item_id:
+                        carried_item.inc(count)
+                        return count
+                if len(self._slots) < self._max_slots:
+                    self._slots.append(ItemStack(item_instance, count))
+                    return count
+            else:
+                count = min(count, self._max_slots - len(self._slots))
+                for i in range(count):
+                    self._slots.append(ItemStack(item_instance, 1))
+                return count
+        else:
+            for carried_item in self._slots:
+                if carried_item.item().resource_id() == item_id:
+                    carried_item.inc(count)
+                    return count
+            self._slots.append(ItemStack(item_instance, count))
+            return count
+
+    def _remove_ids(self, ids: 'List[int]'):
         pass
 
-    def remove(self, item_instance: 'item.Item') -> None:
-        pass
+    def remove(self, item_id: str, count: int = 1) -> int:
+        removed = 0
+        left = count
+        if self._game is not None:
+            remove_ids = list()
+            for i in range(len(self._slots)):
+                stack = self._slots[i]
+                if stack.item().resource_id() == item_id:
+                    if stack.count() > left:
+                        stack.dec(left)
+                        self._remove_ids(remove_ids)
+                        removed += stack.count()
+                        break
+                    else:
+                        remove_ids.append(i)
+                        left -= stack.count()
+                        removed += stack.count()
+            self._remove_ids(remove_ids)
+            return removed
+        else:
+            for i in range(len(self._slots)):
+                stack = self._slots[i]
+                if stack.item().resource_id() == item_id:
+                    if stack.count() > count:
+                        stack.dec(count)
+                        return count
+                    removed = stack.count()
+                    self._slots.pop(i)
+                    return removed
+            return 0
 
     def equip(self, slot_id: int, count: int) -> None:
         pass
@@ -71,3 +162,6 @@ class Inventory(object):
 
     def weight(self) -> float:
         return self._weight
+
+    def __str__(self) -> str:
+        return "\n".join("{} {}".format(stack.count(), stack.item().resource_id()) for stack in self._slots)

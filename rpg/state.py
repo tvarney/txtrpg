@@ -70,6 +70,8 @@ class GameData(object):
         if self.location is None:
             self._game_object.log.error("No initial location set by start callbacks")
 
+        self.player.inventory.bind(self._game_object)
+
     def set_location(self, location_id: str) -> None:
         """Attempt to change the current location to the location denoted by the given resource_id.
 
@@ -114,7 +116,7 @@ class GameData(object):
         view = self._game_object.stack.current()  # type: views.GameView
         if view.is_game_view():
             view.fight_end()
-        
+
         self.resume_display()
 
     def game_view(self) -> 'Optional[views.GameView]':

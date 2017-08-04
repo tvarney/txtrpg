@@ -103,7 +103,7 @@ class Item(resource.Resource):
 
     """
 
-    def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float):
+    def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float, stack: bool=True):
         """Initialize a new Item instance.
 
         :param resource_id: The unique string used to identify this item
@@ -117,6 +117,7 @@ class Item(resource.Resource):
         self._name = name
         self._value = value
         self._weight = weight
+        self._stackable = stack
 
     def type(self) -> ItemType:
         """Get the type of this item instance.
@@ -145,6 +146,13 @@ class Item(resource.Resource):
         :return: The weight of the item
         """
         return self._weight
+
+    def stackable(self) -> bool:
+        """Check if the item is stackable
+
+        :return: If the item is stackable
+        """
+        return self._stackable
 
 
 class Attack(object):
@@ -203,7 +211,7 @@ class Attack(object):
 
 class WearableItem(Item):
     def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float, slot: EquipSlot):
-        Item.__init__(self, resource_id, item_type, name, value, weight)
+        Item.__init__(self, resource_id, item_type, name, value, weight, False)
         self._slot = slot
 
     def slot(self) -> EquipSlot:
