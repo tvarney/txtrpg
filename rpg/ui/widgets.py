@@ -226,64 +226,187 @@ class StaticTextArea(tkinter.Text):
 class CustomTextArea(tkinter.Text):
     def __init__(self, root: 'tkinter.Frame', *args, **kwargs):
         tkinter.Text.__init__(self, root, *args, **kwargs)
+        self._mark = None
+        self.bind_multiple(('<a>', self._keycode_a), ('<b>', self._keycode_b), ('<d>', self._keycode_d),
+                           ('<e>', self._keycode_e), ('<f>', self._keycode_f), ('<n>', self._keycode_n),
+                           ('<p>', self._keycode_p), ('<y>', self._keycode_y), ('<w>', self._keycode_w),
+                           ('<k>', self._keycode_k),
+                           ('<BackSpace>', self._keycode_backspace), ("<Button-1>", self._action_click),
+                           ('<space>', self._keycode_space))
 
-        self.bind_multiple(("<a>", self._keycode_a), ("<A>", self._keycode_a),
-                           ("<e>", self._keycode_e), ("<E>", self._keycode_e),
-                           ("<b>", self._keycode_b), ("<B>", self._keycode_b),
-                           ("<f>", self._keycode_f), ("<F>", self._keycode_f),
-                           ("<p>", self._keycode_p), ("<P>", self._keycode_p),
-                           ("<n>", self._keycode_n), ("<N>", self._keycode_n))
+    def move_cursor(self, index: str):
+        """Move the insertion cursor to the given index
+
+        This method attempts to make sure that selections and marks are handled appropriately
+
+        :param index: The index (mark, tag, or index) to move the insertion cursor to
+        """
+        self.mark_set('insert', index)
+        if self._mark is None:
+            self.mark_set('tk::anchor1', index)
+            try:
+                self.tag_remove('sel', '0.1', 'end')
+            except tkinter.TclError:
+                pass
+        else:
+            iy, ix = self.get_index('insert')
+            my, mx = self.get_index('mark')
+            self.tag_remove('sel', '0.1', 'end')
+            if iy < my or (iy == my and ix < mx):
+                self.tag_add('sel', self.index('insert'), self.index('mark'))
+            elif iy > my or (iy == my and ix > mx):
+                self.tag_add('sel', self.index('mark'), self.index('insert'))
+
+    def clipboard_replace(self, text):
+        """Replace the contents of the clipboard with the given text
+
+        :param text: The text to place on the clipboard
+        """
+        self.clipboard_clear()
+        self.clipboard_append(text)
+
+    def set_custom_mark(self):
+        """Set the custom mark to the current insertion cursor index"""
+        if self._mark is None:
+            self._mark = self.index('insert')
+            self.tag_remove('sel', '0.1', 'end')
+            self.mark_set('mark', 'insert')
+            self.mark_set('tk::anchor1', 'insert')
+            self.tag_delete('sel')
+
+    def unset_custom_mark(self):
+        """Remove the custom mark from the text, removing any selection that may have been created by it"""
+        if self._mark is not None:
+            self._mark = None
+            self.tag_remove('sel', '0.1', 'end')
+            self.mark_unset('mark')
+            self.mark_set('tk::anchor1', 'insert')
 
     def bind_multiple(self, *args):
+        """Bind multiple events to this Text instance
+
+        :param args: Tuples of (binding_string, callback) to bind
+        """
         for keycode, event in args:
             self.bind(keycode, event)
 
-    def get_mark(self, mark_name: str) -> 'Tuple[int, int]':
+    def get_index(self, mark_name: str) -> 'Tuple[int, int]':
+        """Parse and return a two-tuple of (y, x) which represents the given index
+
+        :param mark_name: The name of the mark to parse
+        :returns: A two-tuple of (y, x), representing the location of the mark
+        """
         px, py = self.index(mark_name).split('.', 2)
         return int(px), int(py)
 
-    def set_cursor(self, x, y):
-        self.mark_set('insert', "{}.{}".format(x, y))
+    def _action_click(self, event):
+        if not shift(event):
+            self.unset_custom_mark()
 
     def _keycode_a(self, event) -> 'Optional[str]':
         # TODO: Provide key binding for selecting whole text - ctrl-a as start of line is shadows native select all
-        if control(event):
-            y, x = self.get_mark('insert')
-            self.mark_set('insert', '{}.{}'.format(y, 0))
-            return "break"
-
-    def _keycode_e(self, event) -> 'Optional[str]':
-        if control(event):
-            y, x = self.get_mark('insert')
-            self.mark_set('insert', '{}.end'.format(y))
+        if control(event) and not alt(event):
+            y, x = self.get_index('insert')
+            self.move_cursor('{}.{}'.format(y, 0))
             return "break"
 
     def _keycode_b(self, event) -> 'Optional[str]':
-        if control(event):
-            self.mark_set('insert', 'insert-1c')
+        if control(event) and not alt(event):
+            self.move_cursor('insert-1c')
             return "break"
-        if alt(event):
-            self.mark_set('insert', 'insert-1c wordstart')
-            if self.get('insert', 'insert+1c').isspace():
-                self.mark_set('insert', 'insert-1c wordstart')
+        if alt(event) and not control(event):
+            idx = self.search(r'\m\w+\M', 'insert', backwards=True, regexp=True, stopindex='0.1')
+            self.move_cursor(idx if idx != "" else '0.1')
+
+    def _keycode_d(self, event) -> 'Optional[str]':
+        if control(event) and not alt(event):
+            self.delete('insert', 'insert+1c')
+            return 'break'
+        if alt(event) and not control(event):
+            idx = self.search(r'\M', 'insert+1c', backwards=False, regexp=True, stopindex='end')
+            if idx != "":
+                self.delete('insert', idx)
+
+    def _keycode_e(self, event) -> 'Optional[str]':
+        if control(event)and not alt(event):
+            y, x = self.get_index('insert')
+            self.move_cursor('{}.end'.format(y))
+            return "break"
 
     def _keycode_f(self, event) -> 'Optional[str]':
-        if control(event):
-            self.mark_set('insert', 'insert+1c')
+        if control(event) and not alt(event):
+            self.move_cursor('insert+1c')
             return "break"
-        if alt(event):
-            self.mark_set('insert', 'insert+1c wordend')
+        if alt(event) and not control(event):
+            idx = self.search(r'\M', 'insert+1c', backwards=False, regexp=True, stopindex='end')
+            self.move_cursor(idx if idx != '' else 'end')
             return "break"
 
-    def _keycode_p(self, event) -> 'Optional[str]':
-        if control(event):
-            self.mark_set('insert', 'insert-1l')
+    def _keycode_k(self, event) -> 'Optional[str]':
+        if control(event) and not alt(event):
+            y, x = self.get_index('insert')
+            text = self.get('insert', '{}.end'.format(y))
+            if text != "":
+                self.delete('insert', '{}.end'.format(y))
+                self.clipboard_replace(text)
+                self.unset_custom_mark()
             return "break"
 
     def _keycode_n(self, event) -> 'Optional[str]':
-        if control(event):
-            self.mark_set('insert', 'insert+1l')
+        if control(event) and not alt(event):
+            self.move_cursor('insert+1l')
             return "break"
+
+    def _keycode_p(self, event) -> 'Optional[str]':
+        if control(event) and not alt(event):
+            self.move_cursor('insert-1l')
+            return "break"
+
+    def _keycode_w(self, event) -> 'Optional[str]':
+        if control(event) and not alt(event):
+            try:
+                text = self.get('sel.first', 'sel.last')
+                self.clipboard_clear()
+                self.clipboard_append(text)
+                self.delete('sel.first', 'sel.last')
+                self.unset_custom_mark()
+            except tkinter.TclError:
+                pass
+            return "break"
+        if alt(event) and not control(event):
+            try:
+                text = self.get('sel.first', 'sel.last')
+                self.clipboard_clear()
+                self.clipboard_append(text)
+                self.mark_unset('sel.first sel.last')
+                self.unset_custom_mark()
+            except tkinter.TclError:
+                pass
+            return "break"
+
+    def _keycode_y(self, event) -> 'Optional[str]':
+        if control(event) and not alt(event):
+            clipboard = self.clipboard_get()
+            if clipboard != "":
+                try:
+                    self.delete('sel.first', 'sel.last')
+                except tkinter.TclError:
+                    pass
+                self.insert('insert', clipboard)
+            return "break"
+
+    def _keycode_space(self, event) -> 'Optional[str]':
+        if control(event) and not alt(event):
+            if self._mark is not None:
+                self.unset_custom_mark()
+            else:
+                self.set_custom_mark()
+
+    def _keycode_backspace(self, event) -> 'Optional[str]':
+        if alt(event) and not control(event):
+            idx = self.search(r'\m\w+\M', 'insert', backwards=True, regexp=True)
+            self.delete(idx if idx != "" else '0.1', 'insert')
+            return 'break'
 
 
 class VerticalScrolledFrame(tkinter.Frame):
@@ -300,7 +423,7 @@ class VerticalScrolledFrame(tkinter.Frame):
         self._canvas.xview_moveto(0)
         self._canvas.yview_moveto(0)
         self._interior = tkinter.Frame(self._canvas)
-        self._interior_id = self._canvas.create_window(0,0, window=self._interior, anchor='nw')
+        self._interior_id = self._canvas.create_window(0, 0, window=self._interior, anchor='nw')
 
         def _configure_interior(_):
             size = (self._interior.winfo_reqwidth(), self._interior.winfo_reqheight())

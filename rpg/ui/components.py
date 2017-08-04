@@ -436,7 +436,8 @@ class CombatStatusBar(tkinter.Frame):
 class ConsoleState(object):
     def __init__(self, game: 'app.Game'):
         self.history = list()
-        self.environ = {'game': game, 'console': self, 'print': self.print}
+        self.environ = {'game': game, 'console': self, 'print': self.print, 'close': self.close, 'reset': self.reset,
+                        'clear': self.clear}
         self._saved_state = dict(self.environ)
         self._game = game
         self._window = None
@@ -451,6 +452,15 @@ class ConsoleState(object):
         if self._window is not None:
             self._window.clear()
 
+    def close(self):
+        if self._window is not None:
+            self._window.close()
+
+    def reset(self):
+        self.environ = dict(self._saved_state)
+        self.history.clear()
+        self.clear()
+
     def print(self, *objects, sep='', end='\n', file=None) -> None:
         if file is not None:
             file.write(sep.join(str(obj) for obj in objects) + end)
@@ -463,11 +473,6 @@ class ConsoleState(object):
     def evaluate(self, code_string) -> 'Any':
         # Ensure that game and console are always correct
         code_string = code_string.strip()
-        if code_string == "reset":
-            self.environ = {'game': self._game, 'console': self}
-            self.history.clear()
-            self.clear()
-            return
 
         # The exception here is thrown away on purpose
         # noinspection PyBroadException
@@ -484,8 +489,7 @@ class ConsoleWindow(tkinter.Toplevel):
         tkinter.Toplevel.__init__(self, root, **kwargs)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        self._alt = False
-        self._ctrl = False
+        self._closing = False
 
         self._state = state
         self._state.bind(self)
@@ -501,6 +505,8 @@ class ConsoleWindow(tkinter.Toplevel):
         self._txtInput.bind("<Return>", self._on_enter)
         self._txtInput.bind("<Up>", self._arrow_up)  # Move to previous history line
         self._txtInput.bind("<Down>", self._arrow_down)  # Move to next history line
+        self._txtInput.bind("<D>", lambda e: self.close() if widgets.control(e) and not widgets.alt(e) else None)
+        self._txtInput.bind("<Y>", self._custom_regex)
 
         self._txtOutput.grid(row=0, column=0, sticky='nsew')
         self._txtInput.grid(row=1, column=0, sticky='nsew')
@@ -520,9 +526,30 @@ class ConsoleWindow(tkinter.Toplevel):
     def clear(self):
         self._txtOutput.delete('1.0', 'end')
 
+    def close(self):
+        self._on_close()
+
     def _on_close(self):
         self._state.unbind()
+        self._closing = True
         self.destroy()
+
+    # TODO: Remove this
+    def _custom_regex(self, event) -> 'Optional[str]':
+        if widgets.control(event) and not widgets.alt(event):
+            regexp = self._state.environ.get("CUSTOM_REGEXP", r"\M")
+            backwards = self._state.environ.get("CUSTOM_BACKWARDS", False)
+            if type(backwards) is not bool:
+                try:
+                    backwards = bool(backwards)
+                except Exception:
+                    backwards = False
+                    del self._state.environ["CUSTOM_BACKWARDS"]
+            postfix = self._state.environ.get("CUSTOM_POSTFIX", "")
+            self.print("search({}, 'insert', backwards={}, regexp=True)".format(repr(regexp), backwards))
+            idx = self._txtInput.search(regexp, 'insert', backwards=backwards, regexp=True)
+            self.print("mark_set('insert', {})".format(repr(idx+postfix)))
+            self._txtInput.mark_set("insert", idx + postfix)
 
     def _on_enter(self, event) -> 'Optional[str]':
         # If shift is pressed, let the enter key pass un-interrupted
@@ -549,17 +576,21 @@ class ConsoleWindow(tkinter.Toplevel):
         try:
             return_value = self._state.evaluate(value)
             if return_value is not None:
-                self._txtOutput.insert('end', "{}\n".format(repr(return_value)), "o")
+                if not self._closing:
+                    self._txtOutput.insert('end', "{}\n".format(repr(return_value)), "o")
         except Exception as e:
-            self._txtOutput.insert("end", util.format_exception(e), "e")
+            if not self._closing:
+                self._txtOutput.insert("end", util.format_exception(e), "e")
 
         # Make sure the output is focused at the end of the text in it
-        self._txtOutput.see("end")
+        if not self._closing:
+            self._txtOutput.see("end")
         return "break"
 
     def print(self, *objects, sep='', end='\n') -> None:
         txt_result = sep.join(str(obj) for obj in objects) + end
         self._txtOutput.insert("end", txt_result, "o")
+        self._txtOutput.see('end')
 
     @staticmethod
     def _raise_exception(self, *args, **kwargs):
@@ -610,6 +641,3 @@ class InventoryFrame(tkinter.Frame):
 
     def build(self, player: 'actor.Player'):
         pass
-
-
-
