@@ -436,7 +436,8 @@ class CombatStatusBar(tkinter.Frame):
 class ConsoleState(object):
     def __init__(self, game: 'app.Game'):
         self.history = list()
-        self.environ = {'game': game, 'console': self}
+        self.environ = {'game': game, 'console': self, 'print': self.print}
+        self._saved_state = dict(self.environ)
         self._game = game
         self._window = None
 
@@ -449,6 +450,15 @@ class ConsoleState(object):
     def clear(self):
         if self._window is not None:
             self._window.clear()
+
+    def print(self, *objects, sep='', end='\n', file=None) -> None:
+        if file is not None:
+            file.write(sep.join(str(obj) for obj in objects) + end)
+        else:
+            if self._window is not None:
+                self._window.print(*objects, sep=sep, end=end)
+            else:
+                print(*objects, sep=sep, end=end)
 
     def evaluate(self, code_string) -> 'Any':
         # Ensure that game and console are always correct
@@ -508,7 +518,6 @@ class ConsoleWindow(tkinter.Toplevel):
         self._txtInput.focus()
 
     def clear(self):
-        print("Clear Window")
         self._txtOutput.delete('1.0', 'end')
 
     def _on_close(self):
@@ -548,11 +557,9 @@ class ConsoleWindow(tkinter.Toplevel):
         self._txtOutput.see("end")
         return "break"
 
-    def _print_override(self, *objects, sep='', end='\n', file=None) -> None:
+    def print(self, *objects, sep='', end='\n') -> None:
         txt_result = sep.join(str(obj) for obj in objects) + end
         self._txtOutput.insert("end", txt_result, "o")
-        if file is not None:
-            file.write(txt_result)
 
     @staticmethod
     def _raise_exception(self, *args, **kwargs):
