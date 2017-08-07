@@ -148,17 +148,21 @@ class GameViewImpl(views.GameView):
 
         self._var_title = tkinter.StringVar(self)
 
+        self._inventory = False
+
         self.txtContent = widgets.StaticTextArea(self)
         self.lblTitle = tkinter.Label(self, textvariable=self._var_title, font=('arial', 18, 'bold'))
-        self.frmStatus = components.StatusBar.default(self, game)  # pycharm warns about this; it's fine (I checked)
+        self.frmStatus = components.StatusBar.default(self, game)
         controls = self.frmStatus.add_section("controls", None, side='bottom')
         controls.add_item("inventory", widgets.Button(controls, "Inventory", self._action_inventory))
+
+        self.frmInventory = components.InventoryFrame(self)
 
         self.frmOptions = tkinter.Frame(self)
         self.frmMonster = components.CombatStatusBar(self)
 
         self.frmStatus.grid(column=0, row=0, rowspan=2, sticky='ns')
-        self.txtContent.grid(column=1, row=1, sticky='nswe')
+        self.txtContent.grid(column=1, row=1, sticky='nsew')
         self.frmOptions.grid(column=0, row=2, columnspan=2, sticky='ew')
         self.lblTitle.grid(column=1, row=0, sticky="ew")
 
@@ -168,7 +172,15 @@ class GameViewImpl(views.GameView):
         self._fight_options = options.OptionList((options.Option("Run Away", event.FightEndEvent()), 0, 0))
 
     def _action_inventory(self):
-        self._game_obj.log.debug("Pressed Inventory Button")
+        if self._inventory:
+            self.frmInventory.clear()
+            self.frmInventory.grid_forget()
+            self.txtContent.grid(column=1, row=1, sticky='nsew')
+        else:
+            self.frmInventory.build(self._game_obj.state.player.inventory)
+            self.txtContent.grid_forget()
+            self.frmInventory.grid(column=1, row=1, sticky='nsew')
+        self._inventory = not self._inventory
 
     def set_title(self, text: str, update_status_bar: bool=False) -> None:
         """Set the displayed title to the given text.
@@ -237,20 +249,3 @@ class GameViewImpl(views.GameView):
     def fight_end(self):
         self.frmMonster.grid_forget()
         self._game_obj.state.resume_display()
-
-
-@views.view_impl
-class InventoryView(views.View):
-    def __init__(self, game: 'app.Game'):
-        views.View.__init__(self, game, "InventoryView")
-
-        self._frm_items = widgets.VerticalScrolledFrame(self)
-        self._frm_control = tkinter.Frame(self)
-        self._btn_back = widgets.Button(self._frm_control, "Back", self._action_back)
-        self._btn_back.pack(side="left")
-
-    def start(self):
-        pass
-
-    def _action_back(self):
-        self._game_obj.stack.pop()

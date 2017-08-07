@@ -442,3 +442,46 @@ class VerticalScrolledFrame(tkinter.Frame):
 
     def canvas(self) -> tkinter.Canvas:
         return self._canvas
+
+
+class NumericEntry(tkinter.Entry):
+    def __init__(self, root: 'tkinter.Frame', *args, **kwargs):
+        self._valfn = kwargs.get('validatecommand', None)
+        vcmd = (root.register(self._validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+        kwargs['validatecommand'] = vcmd
+        kwargs['validate'] = 'key'
+
+        if 'integral' in kwargs:
+            self._int_only = kwargs['integral']
+            del kwargs['integral']
+        else:
+            self._int_only = False
+
+        self._validate_text = "0123456789" if self._int_only else "0123456789-+."
+
+        tkinter.Entry.__init__(self, root, *args, **kwargs)
+
+    def get(self):
+        return int(tkinter.Entry.get(self)) if self._int_only else float(tkinter.Entry.get(self))
+    
+    def _validate(self, action, index, value_if_allowed, pvalue, text, vtype, ttype, wname):
+        if action == '1':
+            if text in self._validate_text:
+                try:
+                    if self._int_only:
+                        value = int(value_if_allowed)
+                    else:
+                        value = float(value_if_allowed)
+                except ValueError:
+                    return True if value_if_allowed in '-+' else False
+            else:
+                return False
+        else:
+            return True
+
+        # If we have another validation command, call it and return its result
+        if self._valfn is not None:
+            # We pass the parsed value instead of the text value
+            return bool(self._valfn(action, index, value, pvalue, text, vtype, ttype, wname))
+        # Otherwise, return true
+        return True

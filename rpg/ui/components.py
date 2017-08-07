@@ -14,7 +14,8 @@ from rpg.ui import widgets
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
-    from rpg.data import actor
+    from rpg.data import actor, inventory
+    from tkinter import Widget
     from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
@@ -597,7 +598,7 @@ class ConsoleWindow(tkinter.Toplevel):
         raise Exception("function not available")
 
     def _arrow_up(self, _) -> str:
-        y, x = self._txtInput.get_mark('insert')
+        y, x = self._txtInput.get_index('insert')
         if y == 1:
             min_hist = -len(self._state.history)
             if min_hist < 0 and self._hist_line == 0:
@@ -611,8 +612,8 @@ class ConsoleWindow(tkinter.Toplevel):
             return "break"
 
     def _arrow_down(self, _) -> str:
-        y, x = self._txtInput.get_mark('insert')
-        max_y, max_x = self._txtInput.get_mark('end')
+        y, x = self._txtInput.get_index('insert')
+        max_y, max_x = self._txtInput.get_index('end')
         if y == max_y - 1:
             if self._hist_line == -1:
                 self._hist_line = 0
@@ -629,15 +630,77 @@ class ConsoleWindow(tkinter.Toplevel):
             return "break"
 
 
-class InventoryItem(tkinter.Frame):
-    def __init__(self, root: tkinter.Frame, *args, **kwargs):
-        tkinter.Frame.__init__(self, root, *args, **kwargs)
+class InventoryRow(object):
+    def __init__(self, parent: 'tkinter.Frame', inv: 'inventory.Inventory', item_stack: 'inventory.ItemStack'):
+        self._inventory = inv
+        self._item_stack = item_stack
+        self._item = item_stack.item().item()
+        self.lbl_count = tkinter.Label(parent, text=str(item_stack.count()))
+        self.lbl_name = tkinter.Label(parent, text=self._item.name())
+        self.entry_count = widgets.NumericEntry(parent, width=3, validatecommand=self._validate)
+        self.btn_use = tkinter.Button(parent, text="Use", command=self._action_use)
+        self.btn_delete = tkinter.Button(parent, text="Trash", command=self._action_delete)
+
+        self._visible = False
+
+    def grid(self, row):
+        if not self._visible:
+            self.lbl_count.grid(row=row, column=0)
+            self.lbl_name.grid(row=row, column=1)
+            self.entry_count.grid(row=row, column=2)
+            self.btn_use.grid(row=row, column=3)
+            self.btn_delete.grid(row=row, column=4)
+            self._visible = True
+
+    def grid_forget(self):
+        if self._visible:
+            self.lbl_count.grid_forget()
+            self.lbl_name.grid_forget()
+            self.entry_count.grid_forget()
+            self.btn_use.grid_forget()
+            self.btn_delete.grid_forget()
+            self._visible = False
+
+    @staticmethod
+    def _validate(action, _, value_if_allowed, __, ___, ____, _____, ______):
+        if action == '1':
+            return value_if_allowed > 0
+
+    def _action_use(self):
+        print("Use: {}".format(self._item.name()))
+
+    def _action_delete(self):
+        try:
+            value = int(self.entry_count.get())
+            removed = self._inventory.remove(self._item.resource_id(), value)
+            print("Removed {} of {}".format(removed, self._item.resource_id()))
+        except ValueError:
+            return
 
 
 class InventoryFrame(tkinter.Frame):
     def __init__(self, root: tkinter.Frame, *args, **kwargs):
         tkinter.Frame.__init__(self, root, *args, **kwargs)
-        self._scroll = widgets.VerticalScrolledFrame
 
-    def build(self, player: 'actor.Player'):
-        pass
+        self._lblTitle = tkinter.Label(self, text="Inventory")
+        self._frmScroll = widgets.VerticalScrolledFrame(self)
+        self._interior = self._frmScroll.interior()
+        self._widgets = list()  # type: List[InventoryRow]
+
+        self._lblTitle.pack(side='top', anchor='w')
+        self._frmScroll.pack(side='bottom', anchor='nw', fill='both', expand=True)
+
+    def build(self, inv: 'inventory.Inventory'):
+        for row, item_stack in enumerate(inv.slots):
+            item = item_stack.item().item()
+            if item is not None:
+                irow = InventoryRow(self._interior, inv, item_stack)
+                self._widgets.append(irow)
+                irow.grid(row)
+
+    def clear(self):
+        if len(self._widgets):
+            for irow in self._widgets:
+                irow.grid_forget()
+
+        self._widgets.clear()

@@ -59,7 +59,7 @@ class ItemStack(object):
 class Inventory(object):
     def __init__(self):
         self._weight = 0.0  # type: float
-        self._slots = list()  # type: List[ItemStack]
+        self.slots = list()  # type: List[ItemStack]
         self._equipped = [None for _ in range(item.EquipSlot.COUNT)]  # type: List['item.Instance']
         self._game = None  # type: Optional[app.Game]
         self._max_slots = 100
@@ -69,7 +69,7 @@ class Inventory(object):
             self.unbind()
         self._game = game
         newslots = list()  # type: List[ItemStack]
-        for item_stack in self._slots:
+        for item_stack in self.slots:
             item_stack.item().bind(game)
             if item_stack.item().item() is not None:
                 if item_stack.item().item().stackable():
@@ -82,11 +82,11 @@ class Inventory(object):
                         return
             else:
                 game.log.error("Could not find item with resource_id: {}", item_stack.item().resource_id())
-        self._slots = newslots
+        self.slots = newslots
 
     def unbind(self):
         self._game = None
-        for stack in self._slots:
+        for stack in self.slots:
             stack.item().unbind()
 
     def add(self, item_id, count: int = 1) -> int:
@@ -100,24 +100,24 @@ class Inventory(object):
                 self._game.log.error("Could not find item with resource_id: {}", item_instance.resource_id())
                 return 0
             if item_instance.item().stackable():
-                for carried_item in self._slots:
+                for carried_item in self.slots:
                     if carried_item.item().resource_id() == item_id:
                         carried_item.inc(count)
                         return count
-                if len(self._slots) < self._max_slots:
-                    self._slots.append(ItemStack(item_instance, count))
+                if len(self.slots) < self._max_slots:
+                    self.slots.append(ItemStack(item_instance, count))
                     return count
             else:
-                count = min(count, self._max_slots - len(self._slots))
+                count = min(count, self._max_slots - len(self.slots))
                 for i in range(count):
-                    self._slots.append(ItemStack(item_instance, 1))
+                    self.slots.append(ItemStack(item_instance, 1))
                 return count
         else:
-            for carried_item in self._slots:
+            for carried_item in self.slots:
                 if carried_item.item().resource_id() == item_id:
                     carried_item.inc(count)
                     return count
-            self._slots.append(ItemStack(item_instance, count))
+            self.slots.append(ItemStack(item_instance, count))
             return count
 
     def _remove_ids(self, ids: 'List[int]'):
@@ -128,8 +128,8 @@ class Inventory(object):
         left = count
         if self._game is not None:
             remove_ids = list()
-            for i in range(len(self._slots)):
-                stack = self._slots[i]
+            for i in range(len(self.slots)):
+                stack = self.slots[i]
                 if stack.item().resource_id() == item_id:
                     if stack.count() > left:
                         stack.dec(left)
@@ -143,14 +143,14 @@ class Inventory(object):
             self._remove_ids(remove_ids)
             return removed
         else:
-            for i in range(len(self._slots)):
-                stack = self._slots[i]
+            for i in range(len(self.slots)):
+                stack = self.slots[i]
                 if stack.item().resource_id() == item_id:
                     if stack.count() > count:
                         stack.dec(count)
                         return count
                     removed = stack.count()
-                    self._slots.pop(i)
+                    self.slots.pop(i)
                     return removed
             return 0
 
@@ -164,4 +164,4 @@ class Inventory(object):
         return self._weight
 
     def __str__(self) -> str:
-        return "\n".join("{} {}".format(stack.count(), stack.item().resource_id()) for stack in self._slots)
+        return "\n".join("{} {}".format(stack.count(), stack.item().resource_id()) for stack in self.slots)
