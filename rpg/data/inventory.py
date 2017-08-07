@@ -134,7 +134,7 @@ class Inventory(object):
                     if stack.count() > left:
                         stack.dec(left)
                         self._remove_ids(remove_ids)
-                        removed += stack.count()
+                        removed += left
                         break
                     else:
                         remove_ids.append(i)
