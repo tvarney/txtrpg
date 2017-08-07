@@ -660,6 +660,7 @@ class InventoryRow(object):
             self._item_stack.dec(value)
             if self._item_stack.count() <= 0:
                 self.grid_forget()
+                self._inventory.update()
             else:
                 self.lbl_count.configure(text=str(self._item_stack.count()))
 

@@ -121,7 +121,18 @@ class Inventory(object):
             return count
 
     def _remove_ids(self, ids: 'List[int]'):
-        pass
+        prev = len(self.slots) + 1
+        for i in reversed(ids):
+            if i != prev:
+                self.slots.pop(i)
+            i = prev
+
+    def update(self):
+        _remove = list()
+        for i, stack in enumerate(self.slots):
+            if stack.count() <= 0:
+                _remove.append(i)
+        self._remove_ids(_remove)
 
     def remove(self, item_id: str, count: int = 1) -> int:
         removed = 0
