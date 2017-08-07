@@ -506,7 +506,6 @@ class ConsoleWindow(tkinter.Toplevel):
         self._txtInput.bind("<Up>", self._arrow_up)  # Move to previous history line
         self._txtInput.bind("<Down>", self._arrow_down)  # Move to next history line
         self._txtInput.bind("<D>", lambda e: self.close() if widgets.control(e) and not widgets.alt(e) else None)
-        self._txtInput.bind("<Y>", self._custom_regex)
 
         self._txtOutput.grid(row=0, column=0, sticky='nsew')
         self._txtInput.grid(row=1, column=0, sticky='nsew')
@@ -533,23 +532,6 @@ class ConsoleWindow(tkinter.Toplevel):
         self._state.unbind()
         self._closing = True
         self.destroy()
-
-    # TODO: Remove this
-    def _custom_regex(self, event) -> 'Optional[str]':
-        if widgets.control(event) and not widgets.alt(event):
-            regexp = self._state.environ.get("CUSTOM_REGEXP", r"\M")
-            backwards = self._state.environ.get("CUSTOM_BACKWARDS", False)
-            if type(backwards) is not bool:
-                try:
-                    backwards = bool(backwards)
-                except Exception:
-                    backwards = False
-                    del self._state.environ["CUSTOM_BACKWARDS"]
-            postfix = self._state.environ.get("CUSTOM_POSTFIX", "")
-            self.print("search({}, 'insert', backwards={}, regexp=True)".format(repr(regexp), backwards))
-            idx = self._txtInput.search(regexp, 'insert', backwards=backwards, regexp=True)
-            self.print("mark_set('insert', {})".format(repr(idx+postfix)))
-            self._txtInput.mark_set("insert", idx + postfix)
 
     def _on_enter(self, event) -> 'Optional[str]':
         # If shift is pressed, let the enter key pass un-interrupted
