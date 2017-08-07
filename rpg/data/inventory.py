@@ -41,6 +41,9 @@ class ItemStack(object):
     def weight(self) -> float:
         return self._item.item().weight() * self._count
 
+    def value(self) -> int:
+        return self._item.item().value() * self._count
+
     def item(self) -> ItemInstance:
         return self._item
 
