@@ -59,7 +59,14 @@ class MainMenuView(views.View):
 
     def _action_load_game(self):
         self._game_obj.build_resources()
-        self._game_obj.stack.push("LoadGame")
+        self._game_obj.stack.push("GameView")
+        self._game_obj.state.player.name("Test Player")
+        self._game_obj.state.player.inventory.add('misc.ore.coal', 100)
+        self._game_obj.state.player.inventory.add('misc.ore.tin', 100)
+        self._game_obj.state.player.inventory.add('misc.ore.copper', 100)
+        self._game_obj.state.player.inventory.add('weapon.short_sword_bronze')
+        self._game_obj.state.player.inventory.add('weapon.short_sword_bronze')
+        self._game_obj.state.start()
 
     def _action_quit(self):
         self._game_obj.quit(0)
