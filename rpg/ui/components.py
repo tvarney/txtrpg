@@ -8,14 +8,13 @@ bar).
 """
 
 import tkinter
-from rpg import util
-from rpg.ui import widgets
+from rpg.ui import console, widgets
 
 import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import actor, inventory
-    from typing import Any, Callable, Dict, List, Optional, Tuple
+    from typing import Callable, Dict, List, Optional, Tuple
 
 
 class RootMenuBar(tkinter.Menu):
@@ -30,7 +29,7 @@ class RootMenuBar(tkinter.Menu):
         tkinter.Menu.__init__(self, game_obj.root())
         self._game_obj = game_obj
         self._console = None
-        self._console_state = ConsoleState(game_obj)
+        self._console_state = console.ConsoleState(game_obj)
 
         self.file_menu = tkinter.Menu(self, tearoff=0)
         self.file_menu.add_command(label="Save", command=self._action_save)
@@ -58,7 +57,7 @@ class RootMenuBar(tkinter.Menu):
 
     def _action_console(self) -> None:
         root = self._game_obj.root()  # type: tkinter.Tk
-        self._console = ConsoleWindow(root, self._console_state)
+        self._console = console.ConsoleWindow(root, self._console_state)
 
 
 class StatusBarSection(tkinter.Frame):
@@ -431,184 +430,6 @@ class CombatStatusBar(tkinter.Frame):
         self._lbl_health.get_variable().set(actor_.stats.health.string(False))
         self._lbl_stamina.get_variable().set(actor_.stats.stamina.string(False))
         self._lbl_mana.get_variable().set(actor_.stats.mana.string(False))
-
-
-class ConsoleState(object):
-    def __init__(self, game: 'app.Game'):
-        self.history = list()
-        self.environ = {'game': game, 'console': self, 'print': self.print, 'close': self.close, 'reset': self.reset,
-                        'clear': self.clear}
-        self._saved_state = dict(self.environ)
-        self._game = game
-        self._window = None
-
-    def bind(self, console_window: 'ConsoleWindow'):
-        self._window = console_window
-
-    def unbind(self):
-        self._window = None
-
-    def clear(self):
-        if self._window is not None:
-            self._window.clear()
-
-    def close(self):
-        if self._window is not None:
-            self._window.close()
-
-    def reset(self):
-        self.environ = dict(self._saved_state)
-        self.history.clear()
-        self.clear()
-
-    def print(self, *objects, sep='', end='\n', file=None) -> None:
-        if file is not None:
-            file.write(sep.join(str(obj) for obj in objects) + end)
-        else:
-            if self._window is not None:
-                self._window.print(*objects, sep=sep, end=end)
-            else:
-                print(*objects, sep=sep, end=end)
-
-    def evaluate(self, code_string) -> 'Any':
-        # Ensure that game and console are always correct
-        code_string = code_string.strip()
-
-        # The exception here is thrown away on purpose
-        # noinspection PyBroadException
-        try:
-            return eval(code_string, self.environ)
-        except Exception as _:
-            pass
-        # Let any exceptions thrown here be passed up to the caller
-        exec(code_string, self.environ)
-
-
-class ConsoleWindow(tkinter.Toplevel):
-    def __init__(self, root: 'tkinter.Tk', state: ConsoleState, **kwargs):
-        tkinter.Toplevel.__init__(self, root, **kwargs)
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
-
-        self._closing = False
-
-        self._state = state
-        self._state.bind(self)
-        self._hist_line = 0
-        self._stash = ""
-
-        self._frame = tkinter.Frame(self)
-        self._scrollOutput = tkinter.Scrollbar(self._frame)
-        self._scrollInput = tkinter.Scrollbar(self._frame)
-        self._txtOutput = widgets.StaticTextArea(self._frame, yscrollcommand=self._scrollOutput.set)
-        self._txtInput = widgets.CustomTextArea(self._frame, height=1, yscrollcommand=self._scrollInput.set)
-
-        self._txtInput.bind("<Return>", self._on_enter)
-        self._txtInput.bind("<Up>", self._arrow_up)  # Move to previous history line
-        self._txtInput.bind("<Down>", self._arrow_down)  # Move to next history line
-        self._txtInput.bind("<D>", lambda e: self.close() if widgets.control(e) and not widgets.alt(e) else None)
-
-        self._txtOutput.grid(row=0, column=0, sticky='nsew')
-        self._txtInput.grid(row=1, column=0, sticky='nsew')
-        self._scrollOutput.grid(row=0, column=1, sticky='ns')
-        self._scrollInput.grid(row=1, column=1, sticky='ns')
-
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-        self._frame.pack(fill='both')
-
-        self._txtOutput.tag_config("e", foreground="red")
-        self._txtOutput.tag_config("o", foreground="blue")
-
-        self._txtInput.focus()
-
-    def clear(self):
-        self._txtOutput.delete('1.0', 'end')
-
-    def close(self):
-        self._on_close()
-
-    def _on_close(self):
-        self._state.unbind()
-        self._closing = True
-        self.destroy()
-
-    def _on_enter(self, event) -> 'Optional[str]':
-        # If shift is pressed, let the enter key pass un-interrupted
-        if widgets.shift(event):
-            return
-
-        # Otherwise, we need to display the text, reset the input box, run the code, and display the result
-        value = self._txtInput.get(1.0, "end").strip()
-        self._txtInput.delete(1.0, "end")
-        if value == "":
-            return "break"
-
-        if len(self._state.history) > 0:
-            if self._state.history[-1] != value:
-                self._state.history.append(value)
-        else:
-            self._state.history.append(value)
-        self._hist_line = 0
-
-        value_add = "\n".join(">>> {}".format(part) for part in value.split("\n")) + "\n"
-        self._txtOutput.insert("end", value_add)
-        self._txtInput.configure(height=3)
-
-        try:
-            return_value = self._state.evaluate(value)
-            if return_value is not None:
-                if not self._closing:
-                    self._txtOutput.insert('end', "{}\n".format(repr(return_value)), "o")
-        except Exception as e:
-            if not self._closing:
-                self._txtOutput.insert("end", util.format_exception(e), "e")
-
-        # Make sure the output is focused at the end of the text in it
-        if not self._closing:
-            self._txtOutput.see("end")
-        return "break"
-
-    def print(self, *objects, sep='', end='\n') -> None:
-        txt_result = sep.join(str(obj) for obj in objects) + end
-        self._txtOutput.insert("end", txt_result, "o")
-        self._txtOutput.see('end')
-
-    @staticmethod
-    def _raise_exception(self, *args, **kwargs):
-        raise Exception("function not available")
-
-    def _arrow_up(self, _) -> str:
-        y, x = self._txtInput.get_index('insert')
-        if y == 1:
-            min_hist = -len(self._state.history)
-            if min_hist < 0 and self._hist_line == 0:
-                self._stash = self._txtInput.get('1.0', 'end-1c').rstrip()
-
-            hist_line = max(self._hist_line - 1, min_hist)
-            if hist_line != self._hist_line:
-                self._hist_line = hist_line
-                self._txtInput.delete('1.0', 'end')
-                self._txtInput.insert('1.0', self._state.history[self._hist_line])
-            return "break"
-
-    def _arrow_down(self, _) -> str:
-        y, x = self._txtInput.get_index('insert')
-        max_y, max_x = self._txtInput.get_index('end')
-        if y == max_y - 1:
-            if self._hist_line == -1:
-                self._hist_line = 0
-                self._txtInput.delete('1.0', 'end')
-                self._txtInput.insert('1.0', self._stash)
-                self._stash = ""
-            else:
-                hist_line = min(self._hist_line + 1, 0)
-                if hist_line != self._hist_line:
-                    self._hist_line = hist_line
-                    self._txtInput.delete('1.0', 'end')
-                    if hist_line != 0:
-                        self._txtInput.insert('1.0', self._state.history[self._hist_line])
-            return "break"
 
 
 class InventoryRow(object):
