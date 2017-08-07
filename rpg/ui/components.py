@@ -15,7 +15,6 @@ import typing
 if typing.TYPE_CHECKING:
     from rpg import app
     from rpg.data import actor, inventory
-    from tkinter import Widget
     from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
@@ -643,13 +642,13 @@ class InventoryRow(object):
 
         self._visible = False
 
-    def grid(self, row):
+    def grid(self, row, **kwargs):
         if not self._visible:
-            self.lbl_count.grid(row=row, column=0)
-            self.lbl_name.grid(row=row, column=1)
-            self.entry_count.grid(row=row, column=2)
-            self.btn_use.grid(row=row, column=3)
-            self.btn_delete.grid(row=row, column=4)
+            self.lbl_count.grid(row=row, column=0, **kwargs)
+            self.lbl_name.grid(row=row, column=1, **kwargs)
+            self.entry_count.grid(row=row, column=2, **kwargs)
+            self.btn_use.grid(row=row, column=3, **kwargs)
+            self.btn_delete.grid(row=row, column=4, **kwargs)
             self._visible = True
 
     def grid_forget(self):
@@ -661,8 +660,9 @@ class InventoryRow(object):
             self.btn_delete.grid_forget()
             self._visible = False
 
+    # noinspection PyUnusedLocal,SpellCheckingInspection
     @staticmethod
-    def _validate(action, _, value_if_allowed, __, ___, ____, _____, ______):
+    def _validate(action, index, value_if_allowed, pvalue, _, vtype, ttype, wname):
         if action == '1':
             return value_if_allowed > 0
 
@@ -672,10 +672,14 @@ class InventoryRow(object):
     def _action_delete(self):
         try:
             value = int(self.entry_count.get())
-            removed = self._inventory.remove(self._item.resource_id(), value)
-            print("Removed {} of {}".format(removed, self._item.resource_id()))
         except ValueError:
-            return
+            value = 1
+        if value > 0:
+            self._item_stack.dec(value)
+            if self._item_stack.count() <= 0:
+                self.grid_forget()
+            else:
+                self.lbl_count.configure(text=str(self._item_stack.count()))
 
 
 class InventoryFrame(tkinter.Frame):
@@ -686,17 +690,25 @@ class InventoryFrame(tkinter.Frame):
         self._frmScroll = widgets.VerticalScrolledFrame(self)
         self._interior = self._frmScroll.interior()
         self._widgets = list()  # type: List[InventoryRow]
+        self._padx = (0, 5)
+        self._pady = (2, 3)
+
+        header_count = tkinter.Label(self._interior, text="#")
+        header_name = tkinter.Label(self._interior, text="Item Name")
+
+        header_count.grid(row=0, column=0, padx=self._padx, pady=self._pady)
+        header_name.grid(row=0, column=1, padx=self._padx, pady=self._pady)
 
         self._lblTitle.pack(side='top', anchor='w')
         self._frmScroll.pack(side='bottom', anchor='nw', fill='both', expand=True)
 
     def build(self, inv: 'inventory.Inventory'):
-        for row, item_stack in enumerate(inv.slots):
+        for row, item_stack in enumerate(inv.slots, 1):
             item = item_stack.item().item()
             if item is not None:
                 irow = InventoryRow(self._interior, inv, item_stack)
                 self._widgets.append(irow)
-                irow.grid(row)
+                irow.grid(row, padx=self._padx, pady=self._pady)
 
     def clear(self):
         if len(self._widgets):
