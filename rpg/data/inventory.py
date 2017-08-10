@@ -128,8 +128,8 @@ class Inventory(object):
         for i in reversed(ids):
             if i != prev:
                 self.slots.pop(i)
-            i = prev
-
+            prev = i
+    
     def update(self):
         _remove = list()
         for i, stack in enumerate(self.slots):
