@@ -1,8 +1,0 @@
-{
-    'log': {
-        'level': 'Info',
-        'file': './log.txt',
-        'echo': True,
-        'append': False
-    }
-}

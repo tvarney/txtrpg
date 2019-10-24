@@ -1,10 +1,11 @@
 
-import ast
 import os
 import os.path
 import platform
 from rpg import util
 import shutil
+import yaml
+
 import typing
 if typing.TYPE_CHECKING:
     from typing import Any, Optional, Tuple
@@ -28,8 +29,8 @@ class Config(object):
 
     def __init__(self):
         self._folder = Config.folder()
-        self._path = os.path.join(self._folder, "config.txt")
-        self._template = './config.txt'
+        self._path = os.path.join(self._folder, "config.yaml")
+        self._template = './config.yaml'
         self._config = {
             'log': {
                 'level': 'Info',
@@ -100,9 +101,11 @@ class Config(object):
     def _write_template(self, overwrite: bool=False):
         """Write the template file if possible
 
-        This may actually run into a problem on most operating systems if installed system-wide, as writing to the
-        folder may run afoul of user restrictions (C:/Program Files (x86)/, /Applications/, /usr/local/bin/ are all
-        locked to administrator accounts)
+        This may actually run into a problem on most operating systems
+        if installed system-wide, as writing to the folder may run
+        afoul of user restrictions
+        (C:/Program Files (x86)/, /Applications/, /usr/local/bin/ are
+        all locked to administrator accounts)
 
         :param overwrite: If the template file should be replaced if it exists
         """
@@ -115,8 +118,7 @@ class Config(object):
             else:
                 return
         with open(self._template, 'w') as fp:
-            fp.write(repr(self._config))
-            fp.write('\n')
+            yaml.dump(self._config, fp)
 
     def _read_file(self) -> 'Tuple[bool, Optional[str]]':
         """Attempt to read the configuration file
@@ -125,7 +127,7 @@ class Config(object):
         """
         try:
             with open(self._path, 'r') as fp:
-                data = ast.literal_eval(fp.read())
+                data = yaml.full_load(fp.read())
                 if type(data) is dict:
                     return True, self._copy(self._config, data)
             return False, None
