@@ -3,6 +3,7 @@
 
 """
 
+import io
 import os
 import os.path
 import random
@@ -41,7 +42,17 @@ class Game(object):
         self.state = state.GameData(self)  # type: state.GameData
         self.log = log.Log()  # type: log.Log
         self.random = random.Random()
-        self._config = configuration.Config()
+        self._config = configuration.Config({
+            'log': configuration.Map({
+                'level': configuration.Enum(
+                    allowed=("Debug", "Verbose", "Info", "Warning", "Error", "Fatal"),
+                    default="Info"
+                ),
+                'file': configuration.String(default="./log.txt", allow_empty=False),
+                'echo': configuration.Boolean(default=True),
+                'append': configuration.Boolean(default=False),
+            })
+        })
 
     def root(self) -> 'Optional[tkinter.Frame]':
         """Get the root tkinter frame.
@@ -85,24 +96,30 @@ class Game(object):
         :return: The return value specified by the first call to Application.quit()
         """
         # Read the configuration
-        errstr = self._config.load()
+        errstr = ""
+        filename = os.path.join(configuration.Config.folder(), "config.yaml")
+        if os.path.exists(filename):
+            ctx = configuration.Context()
+            ctx.outfp = io.StringIO()
+            self._config.load(filename, None, ctx)
+            errstr = ctx.outfp.getvalue()
+        else:
+            self._config.save(filename)
 
         # Configure the log
-        append = self._config.get('log', 'append', default=True)  # type: bool
-        self.log.open(self._config.get('log', 'file', default="./log.txt"), append)
+        append = self._config.log.append.value  # type: bool
+        filename = self._config.log.file.value
+        self.log.open(filename, append)
 
-        level_str = self._config.get('log', 'level')  # type: str
-        if level_str is not None:
-            level = log.Log.parse_level(level_str)
-            if level is None:
-                self.log.error("Invalid value for config key log.level: {}", level_str)
-            else:
-                self.log.level(level)
+        level_str = self._config.log.level.value  # type: str
+        level = log.Log.parse_level(level_str)
+        if level is not None:
+            self.log.level(level)
 
-        self.log.echo(self._config.get('log', 'echo', default=False))
+        self.log.echo(self._config.log.echo.value)
 
         # If there were any errors reading the configuration, log them now
-        if errstr is not None:
+        if errstr != "":
             self.log.error("Errors in configuration:\n{}", errstr)
 
         # Initialize the root window
