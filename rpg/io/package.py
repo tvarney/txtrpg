@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
     from rpg.io.log import Log
     from typing import List, Optional
 
-PackageCallback = typing.Callable[[app.Game], None]
+PackageCallback = typing.Callable[['app.Game'], None]
 LoadResults = typing.Tuple[int, typing.Optional[str]]
 _pkgLoadErrorFmt = "cannot load package from {}; {}"
 

@@ -140,15 +140,15 @@ class StatusBarSection(tk.Frame):
             last = idx
 
     def _add_all(self) -> None:
-        for key, widget, kwargs, update_fn in self._added:
-            self._items.append((key, widget, update_fn))
+        for item, kwargs in self._added:
+            self._items.append(item)
             if "expand" not in kwargs:
                 kwargs['expand'] = True
             if kwargs['expand']:
                 kwargs['fill'] = 'x'
             if 'anchor' not in kwargs:
                 kwargs['anchor'] = 'w'
-            widget.pack(**kwargs)
+            item[1].pack(**kwargs)
         self._added.clear()
 
 
