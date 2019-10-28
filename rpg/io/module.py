@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
     from typing import Optional
 
 
-def parse_name(path: str, root: 'Optional[str]'=None) -> str:
+def parse_name(path: str, root: 'Optional[str]' = None) -> str:
     """Generate a name for a python module based on the given path.
 
     :param path: The path to parse into a name
@@ -21,7 +21,8 @@ def parse_name(path: str, root: 'Optional[str]'=None) -> str:
     return name.replace(os.sep, ".")
 
 
-def load_from_file(path: str, root: 'Optional[str]'=None, name: 'Optional[str]'=None) -> 'ModuleType':
+def load_from_file(path: str, root: 'Optional[str]' = None,
+                   name: 'Optional[str]' = None) -> 'ModuleType':
     """Load a module from the filesystem and return its module object.
 
     :param path: The path to the module file

@@ -3,12 +3,12 @@ import abc
 import os
 import os.path
 import platform
-from rpg import util
+
 import yaml
 
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Any, Optional, Tuple
+    from typing import Any, Dict, IO, Optional, Sequence, Type
 
 
 class PropertyTypeError(ValueError):
@@ -26,46 +26,49 @@ class Context(object):
     A Context must be provided to the unpack function of a configuration
     Property, which uses the context to write errors to. The result of the
     unpack operation should be a bool indicating overall success or failure,
-    while the Context can be inspected to check how many errors occured.
+    while the Context can be inspected to check how many errors occurred.
 
-    If the `outfp` field is not None, errors will be written to it. This must
+    If the `writer` field is not None, errors will be written to it. This must
     be set to a type which supports the write function (e.g. sys.stderr), and
     each error will result in multiple calls to write. Capturing the output
-    can be done by setting the `outfp` field to an io.StringIO.
+    can be done by setting the `writer` field to an io.StringIO.
     """
 
-    def __init__(self, filename: str = "", fieldname: str = "") -> None:
+    def __init__(self, file_name: str = "", field_name: str = "") -> None:
         """Create a new Context.
 
-        :param filename: The filename of the context
-        :param fieldname: The name of the current field
+        :param file_name: The filename of the context
+        :param field_name: The name of the current field
         """
-        self.file = filename
-        self.field = fieldname
+        self.file = file_name
+        self.field = field_name
         self.error_count = 0
-        self.outfp = None
+        self.writer = None
 
     def error(self, message: str, *args, **kwargs) -> None:
-        if self.outfp is not None:
+        if self.writer is not None:
             if self.file != "":
-                self.outfp.write(self.file)
-                self.outfp.write(": ")
+                self.writer.write(self.file)
+                self.writer.write(": ")
             if self.field != "":
-                self.outfp.write(self.field)
-                self.outfp.write(": ")
-            self.outfp.write(message.format(*args, **kwargs))
-            self.outfp.write("\n")
+                self.writer.write(self.field)
+                self.writer.write(": ")
+            self.writer.write(message.format(*args, **kwargs))
+            self.writer.write("\n")
         self.error_count += 1
-    
+
     def invalid_type(self, expected_type: 'Type', value: 'Any') -> None:
-        self.error("invalid type; expected {}, got {} ({})", expected_type, value, type(value))
+        self.error(
+            "invalid type; expected {}, got {} ({})",
+            expected_type, value, type(value)
+        )
 
 
 class Property(abc.ABC):
     """Property is the abstract base class of all Configuration properties."""
 
     def __init__(self):
-        pass
+        abc.ABC.__init__(self)
 
     @abc.abstractmethod
     def copy(self) -> 'Property':
@@ -80,8 +83,9 @@ class Property(abc.ABC):
         raise NotImplementedError
 
 
-class PrimitiveProperty(Property):
+class PrimitiveProperty(Property, abc.ABC):
     def __init__(self, default: 'Any') -> None:
+        Property.__init__(self)
         self._default = default
         self._value = default
 
@@ -205,7 +209,7 @@ class Integer(PrimitiveProperty):
 
     def copy(self) -> 'Integer':
         """Create a copy of this Integer Property.
-        
+
         :returns: A copy of this Integer
         """
         i = Integer(self._default)
@@ -217,7 +221,7 @@ class Integer(PrimitiveProperty):
 
         The value being unpacked must be an int, otherwise an error is written
         to the context and False is returned.
-        
+
         :param value: The value to unpack
         :param context: The context of this unpack operation
         :returns: If the unpack operation succeeded
@@ -230,7 +234,7 @@ class Integer(PrimitiveProperty):
 
 
 class Float(PrimitiveProperty):
-    """A Float peroperty."""
+    """A Float property."""
 
     def __init__(self, default: float = 0.0) -> None:
         """Create a new Float property.
@@ -239,7 +243,7 @@ class Float(PrimitiveProperty):
         """
         if type(default) is not float:
             raise PropertyTypeError("Float", default)
-        PrimitiveProperty.__init__(default)
+        PrimitiveProperty.__init__(self, default)
 
     @property
     def value(self) -> float:
@@ -284,7 +288,8 @@ class Float(PrimitiveProperty):
 
 
 class String(PrimitiveProperty):
-    def __init__(self, default: str = "", allow_empty: bool = True, strip: bool = False) -> None:
+    def __init__(self, default: str = "", allow_empty: bool = True,
+                 strip: bool = False) -> None:
         if type(default) is not str:
             raise PropertyTypeError("String", default)
         if strip:
@@ -299,9 +304,9 @@ class String(PrimitiveProperty):
     @property
     def value(self) -> str:
         return self._value
-    
+
     @value.setter
-    def value(self, value: str) -> str:
+    def value(self, value: str) -> None:
         if type(value) is not str:
             raise PropertyTypeError("String", value)
         if self._strip:
@@ -309,7 +314,7 @@ class String(PrimitiveProperty):
         if not self._allow_empty and value == "":
             raise ValueError("may not be empty")
         self._value = value
-    
+
     @property
     def default(self) -> str:
         return self._default
@@ -324,7 +329,7 @@ class String(PrimitiveProperty):
         return s
 
     def unpack(self, value: 'Any', context: 'Context') -> bool:
-        """Unpack a YAML vlue into this String Property.
+        """Unpack a YAML value into this String Property.
 
         The value being unpacked must be a str, otherwise an error is written
         to the context and False is returned.
@@ -345,14 +350,22 @@ class String(PrimitiveProperty):
         return True
 
 
+class EnumValueError(ValueError):
+    def __init__(self, value: str) -> None:
+        ValueError.__init__(
+            self, "{} is not an allowed enum value".format(repr(value))
+        )
+
+
 class Enum(PrimitiveProperty):
-    def __init__(self, allowed: 'Iterable[str]', default: 'Optional[str]' = None) -> None:
+    def __init__(self, allowed: 'Sequence[str]',
+                 default: 'Optional[str]' = None) -> None:
         if len(allowed) == 0:
             raise ValueError("Enum type requires at least one value")
 
         default = default if default is not None else allowed[0]
         if default not in allowed:
-            raise ValueError("{} is not an allowed enum value".format(repr(default)))
+            raise EnumValueError(default)
         PrimitiveProperty.__init__(self, default)
         self._allowed = allowed
 
@@ -361,13 +374,13 @@ class Enum(PrimitiveProperty):
         return self._value
 
     @value.setter
-    def value(self, value: str) -> str:
+    def value(self, value: str) -> None:
         if type(value) is not str:
             raise PropertyTypeError("Enum", value)
         if value not in self._allowed:
-            raise ValueError("{} not an allowed enum value".format(repr(value)))
+            raise EnumValueError(value)
         self._value = value
-    
+
     @property
     def default(self) -> str:
         return self._default
@@ -377,7 +390,7 @@ class Enum(PrimitiveProperty):
 
         :returns: A copy of this Enum
         """
-        e = Enum(self._values, self._default)
+        e = Enum(self._allowed, self._default)
         e._value = self._value
         return e
 
@@ -406,12 +419,13 @@ class Enum(PrimitiveProperty):
 
 class Map(Property):
     def __init__(self, values: 'Dict[str, Property]') -> None:
+        Property.__init__(self)
         object.__setattr__(self, '_values', values)
-    
+
     def copy(self) -> 'Map':
         m = Map(dict())
         for key, value in self._values.items():
-            m._values[key] = value.copy()
+            m.parameters[key] = value.copy()
         return m
 
     def unpack(self, value: 'Any', context: 'Context') -> bool:
@@ -438,6 +452,10 @@ class Map(Property):
         for key, value in self._values.items():
             serialized[key] = value.pack()
         return serialized
+
+    @property
+    def parameters(self) -> 'Dict[str, Property]':
+        return self._values
 
     def __getitem__(self, key: str) -> 'Property':
         return self._values[key]
@@ -468,7 +486,8 @@ class Config(Map):
             return os.path.expanduser("~/Library/Application Support/txtrpg")
         return os.path.expanduser("~/.local/share/txtrpg")
 
-    def load(self, filename: str, fp: 'Optional[IO]' = None, ctx: 'Optional[Context]' = None) -> bool:
+    def load(self, filename: str, fp: 'Optional[IO]' = None,
+             ctx: 'Optional[Context]' = None) -> bool:
         ctx = ctx if ctx is not None else Context(filename)
         if fp is not None:
             return self._load(filename, fp, ctx)
@@ -494,4 +513,3 @@ class Config(Map):
                 yaml.dump(data, fp)
         else:
             yaml.dump(data, fp)
-

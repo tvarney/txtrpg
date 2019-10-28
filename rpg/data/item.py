@@ -4,24 +4,26 @@ from rpg.data import resource
 
 import typing
 if typing.TYPE_CHECKING:
+    from rpg.data.actor import Actor
     from typing import Callable, List, Optional
 
 
 @unique
 class ItemType(IntEnum):
-
     """An enumeration of the types of Items that the game recognizes.
 
-    These values are used to categorize what an item instance is in the game, providing an ostensibly faster method of
-    checking if the item is one of the various sub-classes of item.
+    These values are used to categorize what an item instance is in the game,
+    providing an ostensibly faster method of checking if the item is one of the
+    various sub-classes of item.
 
     Values are as follows:
-        Misc - An item with no real use. May be used for quests, recipes, or just be something to sell.
-        Consumable - An item which may be consumed in some fashion. These tend to have effects
+        Misc - An item with no real use. May be used for quests, recipes, or
+               just be something to sell.
+        Consumable - An item which may be consumed in some fashion. These tend
+                     to have effects
         Weapon - An item which provides attacks for an Actor
         Shield - An item which can be used to block attacks
         Armor - An item which can be worn to provide protection against attacks
-
     """
 
     Misc = 0
@@ -54,11 +56,11 @@ class EquipSlot(IntEnum):
 
 @unique
 class WeaponType(IntEnum):
-
     """An enumeration of the different types of weapons.
 
-    Each type of weapon has different trade-offs. For instance, a weapon which is fast may allow multiple attacks per
-    round (independent of agility), yet have very low damage.
+    Each type of weapon has different trade-offs. For instance, a weapon which
+    is fast may allow multiple attacks per round (independent of agility), yet
+    have very low damage.
 
     Weapon types and their strengths/weaknesses are as follows:
         Dagger: Very fast, low damage. Daggers get to attack twice per action
@@ -68,11 +70,12 @@ class WeaponType(IntEnum):
         Scimitar: Average, average damage
         LongBow: Allow 2 attacks at range
         ShortBow: Allow 1 attack at range
-        Spear: Average speed, average damage, disadvantages opponents with swords or daggers
-        Halberd: Low speed, high damage, disadvantages opponents with swords or daggers
+        Spear: Average speed, average damage, disadvantages opponents with
+               swords or daggers
+        Halberd: Low speed, high damage, disadvantages opponents with swords or
+                 daggers
         Whip: Very fast, low damage, inflicts stun occasionally on hit
         Staff: Fast, low damage, spell casting bonus
-
     """
 
     Dagger = 0
@@ -89,21 +92,23 @@ class WeaponType(IntEnum):
 
 
 class Item(resource.Resource):
-
     """The base class for Items.
 
-    The base class defines a few shared members of all items, namely the type of the item, the name of the item, the
-    base value of the item, and the weight of the item in kg.
+    The base class defines a few shared members of all items, namely the type
+    of the item, the name of the item, the base value of the item, and the
+    weight of the item in kg.
 
-    The type of the item must be a valid ItemType enum value, and is used to determine what the player can do with the
-    item as well as what subclass the item is.
+    The type of the item must be a valid ItemType enum value, and is used to
+    determine what the player can do with the item as well as what subclass the
+    item is.
 
-    The base value of the item is the cost of the item with no modifiers added. This value is the buy price of the item
-    when the players charisma is exactly 10 (no modifier).
-
+    The base value of the item is the cost of the item with no modifiers added.
+    This value is the buy price of the item when the players charisma is
+    exactly 10 (no modifier).
     """
 
-    def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float, stack: bool=True):
+    def __init__(self, resource_id: str, item_type: ItemType, name: str,
+                 value: int, weight: float, stack: bool = True) -> None:
         """Initialize a new Item instance.
 
         :param resource_id: The unique string used to identify this item
@@ -112,7 +117,9 @@ class Item(resource.Resource):
         :param value: The base value of this item
         :param weight: How much the item weighs in kg
         """
-        resource.Resource.__init__(self, resource.ResourceType.Item, resource_id)
+        resource.Resource.__init__(
+            self, resource.ResourceType.Item, resource_id
+        )
         self._item_type = item_type
         self._name = name
         self._value = value
@@ -156,16 +163,16 @@ class Item(resource.Resource):
 
 
 class Attack(object):
-
     """Definition of an attack.
 
-    The Attack class defines an attack which may be performed during a fight instance. At least one of these needs to be
-    defined for a weapon for it to be usable in combat. In addition, actors may have attacks added to them as well;
-    these attacks objects represent unarmed attacks that the character may attempt.
-
+    The Attack class defines an attack which may be performed during a fight
+    instance. At least one of these needs to be defined for a weapon for it to
+    be usable in combat. In addition, actors may have attacks added to them as
+    well; these attacks objects represent unarmed attacks that the character
+    may attempt.
     """
 
-    def __init__(self, name: str, dmg: int, accuracy: int):
+    def __init__(self, name: str, dmg: int, accuracy: int) -> None:
         """Create a new attack instance.
 
         :param name: The name of the attack displayed to the user
@@ -203,15 +210,22 @@ class Attack(object):
 
         :return: A string representation of this attack
         """
-        return "{}: dmg={}, accuracy={}".format(self._name, self._dmg, self._accuracy)
+        return "{}: dmg={}, accuracy={}".format(
+            self._name, self._dmg, self._accuracy
+        )
 
     def __repr__(self):
-        return "Attack({}, {}, {})".format(repr(self._name), repr(self._dmg), repr(self._accuracy))
+        return "Attack({}, {}, {})".format(
+            repr(self._name), repr(self._dmg), repr(self._accuracy)
+        )
 
 
 class WearableItem(Item):
-    def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float, slot: EquipSlot):
-        Item.__init__(self, resource_id, item_type, name, value, weight, False)
+    def __init__(self, resource_id: str, item_type: ItemType, name: str,
+                 value: int, weight: float, slot: EquipSlot) -> None:
+        Item.__init__(
+            self, resource_id, item_type, name, value, weight, False
+        )
         self._slot = slot
 
     def slot(self) -> EquipSlot:
@@ -219,8 +233,11 @@ class WearableItem(Item):
 
 
 class ArmorItem(WearableItem):
-    def __init__(self, resource_id: str, name: str, value: int, weight: float, slot: EquipSlot, damage_reduce: int):
-        WearableItem.__init__(self, resource_id, ItemType.Armor, name, value, weight, slot)
+    def __init__(self, resource_id: str, name: str, value: int, weight: float,
+                 slot: EquipSlot, damage_reduce: int) -> None:
+        WearableItem.__init__(
+            self, resource_id, ItemType.Armor, name, value, weight, slot
+        )
         self._damage_reduce = damage_reduce
 
     def damage_reduce(self) -> int:
@@ -228,12 +245,11 @@ class ArmorItem(WearableItem):
 
 
 class CombatItem(WearableItem):
-    """Base class for items which are used in combat.
+    """Base class for items which are used in combat."""
 
-    """
-
-    def __init__(self, resource_id: str, item_type: ItemType, name: str, value: int, weight: float, hand_slots: int,
-                 attacks: 'Optional[List[Attack]]', block: int):
+    def __init__(self, resource_id: str, item_type: ItemType, name: str,
+                 value: int, weight: float, hand_slots: int,
+                 attacks: 'Optional[List[Attack]]', block: int) -> None:
         """Initialize the combat item instance.
 
         :param resource_id: The unique string used to look this item up
@@ -245,18 +261,21 @@ class CombatItem(WearableItem):
         :param attacks: Attacks that may be made with this combat item
         :param block: How well this item can be used to block attacks
         """
-        WearableItem.__init__(self, resource_id, item_type, name, value, weight, EquipSlot.Held)
+        WearableItem.__init__(
+            self, resource_id, item_type, name, value, weight, EquipSlot.Held
+        )
         self._hand_slots = hand_slots
-        self._attacks = attacks if attacks is None or len(attacks) > 0 else None
+        self._attacks = None  # type: Optional[List[Attack]]
+        if attacks is not None and len(attacks) > 0:
+            self._attacks = attacks
         self._block = block
 
 
 class Weapon(CombatItem):
-    """Class used to create weapons.
-
-    """
-    def __init__(self, resource_id: str, weapon_type: WeaponType, name: str, value: int, weight: float, hand_slots: int,
-                 attacks: 'List[Attack]', parry: int):
+    """Class used to create weapons."""
+    def __init__(self, resource_id: str, weapon_type: WeaponType, name: str,
+                 value: int, weight: float, hand_slots: int,
+                 attacks: 'List[Attack]', parry: int) -> None:
         """Initialize the weapon.
 
         :param resource_id: The unique string used to look this weapon up
@@ -268,21 +287,23 @@ class Weapon(CombatItem):
         :param attacks: The attacks that this weapon offers
         :param parry: How well this weapon can be used to block attacks
         """
-        CombatItem.__init__(self, resource_id, ItemType.Weapon, name, value, weight, hand_slots, attacks, parry)
+        CombatItem.__init__(
+            self, resource_id, ItemType.Weapon, name, value, weight,
+            hand_slots, attacks, parry
+        )
         self._weapon_type = weapon_type
 
 
 class Shield(CombatItem):
-
     """Class used to create shields.
 
-    Despite not being a weapon, a shield can be used to attack in combat. Doing so means that the shield can not
-    be used to block an attack.
-
+    Despite not being a weapon, a shield can be used to attack in combat. Doing
+    so means that the shield can not be used to block an attack.
     """
 
-    def __init__(self, resource_id: str, name: str, value: int, weight: float, hand_slots: int, block: int,
-                 attacks: 'Optional[List[Attack]]' = None):
+    def __init__(self, resource_id: str, name: str, value: int, weight: float,
+                 hand_slots: int, block: int,
+                 attacks: 'Optional[List[Attack]]' = None) -> None:
         """Initialize the shield instance.
 
         :param resource_id: The unique string used to look this shield up
@@ -293,18 +314,20 @@ class Shield(CombatItem):
         :param block: How well this shield blocks attacks
         :param attacks: Any attacks this shield may make
         """
-        CombatItem.__init__(self, resource_id, ItemType.Shield, name, value, weight, hand_slots, attacks, block)
+        CombatItem.__init__(
+            self, resource_id, ItemType.Shield, name, value, weight,
+            hand_slots, attacks, block
+        )
 
 
 class MiscItem(Item):
-
     """Base class which can be used to create misc items.
 
     MiscItem instances can be used for quests, recipes, or just selling.
-
     """
 
-    def __init__(self, resource_id: str, name: str, value: int, weight: float):
+    def __init__(self, resource_id: str, name: str, value: int,
+                 weight: float) -> None:
         """Initialize the misc. item instance.
 
         :param resource_id: The unique string used to look this item up
@@ -316,28 +339,30 @@ class MiscItem(Item):
 
 
 class Consumable(Item):
-
     """An item which can be consumed in some fashion.
 
-    These items are things like potions, food, or special items which can be used to provide an effect.
-
+    These items are things like potions, food, or special items which can be
+    used to provide an effect.
     """
 
-    def __init__(self, resource_id: str, name: str, value: int, weight: float, fn_callback: 'Callable[]'):
+    def __init__(self, resource_id: str, name: str, value: int, weight: float,
+                 fn_callback: 'Callable[[Consumable, Actor], None]') -> None:
         """Initialize this consumable item.
 
-        :param resource_id: The unique string used to look up the consumable item
+        :param resource_id: The unique string used to look up the consumable
         :param name: The name of the consumable item
         :param value: The base value of the consumable item
         :param weight: The weight of the consumable item
-        :param fn_callback: A callback function which is used to apply the consumable items effect
+        :param fn_callback: A callback function used when the consumable is
         """
-        Item.__init__(self, resource_id, ItemType.Consumable, name, value, weight)
+        Item.__init__(
+            self, resource_id, ItemType.Consumable, name, value, weight
+        )
         self._callback = fn_callback
 
-    def apply(self, target):
+    def apply(self, target: 'Actor'):
         """Method used to call the provided callback function
 
-        :param target: The actor instance which this consumable item is being used on
+        :param target: The actor which this consumable item is being used on
         """
         self._callback(self, target)

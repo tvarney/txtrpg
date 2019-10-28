@@ -1,7 +1,8 @@
 
 """Definitions of general purpose aggregate widgets.
 
-This module is used for classes which aggregate tkinter widgets in a way that they are general purpose.
+This module is used for classes which aggregate tkinter widgets in a way that
+they are general purpose.
 
 """
 
@@ -9,27 +10,29 @@ import tkinter
 
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Callable, Optional, Tuple
+    from typing import Callable, Optional, Tuple, Union
+
+Index = typing.Union[str, float]
 
 
-def shift(event):
-    return (event.state & 0x0001) != 0
+def shift(event: 'tkinter.Event') -> bool:
+    return (event.__getattribute__('state') & 0x0001) != 0
 
 
-def caps_lock(event):
-    return (event.state & 0x0002) != 0
+def caps_lock(event: 'tkinter.Event') -> bool:
+    return (event.__getattribute__('state') & 0x0002) != 0
 
 
-def control(event):
-    return (event.state & 0x0004) != 0
+def control(event: 'tkinter.Event') -> bool:
+    return (event.__getattribute__('state') & 0x0004) != 0
 
 
-def numlock(event):
-    return (event.state & 0x0008) != 0
+def numlock(event: 'tkinter.Event') -> bool:
+    return (event.__getattribute__('state') & 0x0008) != 0
 
 
-def alt(event):
-    return (event.state & 0x20000) != 0
+def alt(event: 'tkinter.Event'):
+    return (event.__getattribute__('state') & 0x20000) != 0
 
 
 def modifier_string(event):
@@ -39,12 +42,13 @@ def modifier_string(event):
 
 
 class Button(tkinter.Button):
-
-    """Wrapper around a tkinter.Button which supports setting the text and command on initialization.
+    """Wrapper around a tkinter.Button which supports setting the text and
+    command on initialization.
 
     """
 
-    def __init__(self, root: tkinter.Frame, text: str, command: 'Callable', *args, **kwargs) -> None:
+    def __init__(self, root: tkinter.Frame, text: str, command: 'Callable',
+                 *args, **kwargs) -> None:
         """Initialize this button
 
         :param root: The tkinter.Frame which this button is being placed in
@@ -59,23 +63,24 @@ class Button(tkinter.Button):
 
 
 class LabeledEntry(tkinter.Frame):
-
     """A tkinter.Entry object with an associated label.
 
-    This is for the common case of needing an entry which has a label displaying what the entry is for.
+    This is for the common case of needing an entry which has a label
+    displaying what the entry is for.
+
     The component widgets can be accessed by:
         LabeledEntry.label -> The tkinter.Label widget
         LabeledEntry.entry -> The tkinter.Entry widget
-
     """
 
-    def __init__(self, root: tkinter.Frame, label: str, entry_size: int=20, orientation: str=tkinter.LEFT) -> None:
+    def __init__(self, root: tkinter.Frame, label: str, entry_size: int = 20,
+                 orientation: str = tkinter.LEFT) -> None:
         """Initialize the widget
 
         :param root: The tkinter.Frame in which to place this entry
         :param label: The label text displayed on this entry
         :param entry_size: How many characters wide the entry is
-        :param orientation: How the label should be oriented relative to the entry
+        :param orientation: How the label should be oriented
         """
         tkinter.Frame.__init__(self, root)
         self.label = tkinter.Label(self, text=label)
@@ -87,20 +92,26 @@ class LabeledEntry(tkinter.Frame):
 
 
 class LabeledVariable(tkinter.Frame):
-
-    """A tkinter.Label widget which has a static label decorating a label which can have its contents changed.
+    """A tkinter.Label widget which has a static label decorating a label which
+    can have its contents changed.
 
     """
 
-    def __init__(self, root: tkinter.Frame, label: str, var: 'Optional[tkinter.StringVar]'=None, **kwargs) -> None:
-        """
+    def __init__(self, root: tkinter.Frame, label: str,
+                 var: 'Optional[tkinter.StringVar]' = None,
+                 **kwargs) -> None:
+        """Create a new LabeledVariable.
 
         Keyword arguments unless otherwise noted are for the parent frame.
         Special keyword arguments handled are:
-            "cnf_lbl": A dictionary of keyword arguments used for the static label
-            "cnf_var": A dictionary of keyword arguments used for the variable label
-            "orientation": The orientation of the static label with respect to the variable label
-            "font": The font to use for both the static and variable label
+            "cnf_lbl"    : A dictionary of keyword arguments used for the
+                           static label
+            "cnf_var"    : A dictionary of keyword arguments used for the
+                           variable label
+            "orientation": The orientation of the static label with respect to
+                           the variable label
+            "font"       : The font to use for both the static and variable
+                           label
 
         :param root: The root tkinter.Frame to place this widget in
         :param label: The label text
@@ -122,14 +133,15 @@ class LabeledVariable(tkinter.Frame):
         else:
             cnf_var = dict()
 
-        orientation = tkinter.LEFT
+        orient = tkinter.LEFT
         if "orientation" in kwargs:
-            orientation = kwargs["orientation"]
+            orient = kwargs["orientation"]
             del kwargs["orientation"]
-        reverse_orientation = tkinter.LEFT if orientation == tkinter.RIGHT else tkinter.RIGHT
-        anchor_lbl = 'w' if orientation == tkinter.LEFT else 'e'
-        anchor_var = 'e' if orientation == tkinter.LEFT else 'w'
-        cnf_var['anchor'] = anchor_var  # Anchor is used to place the text inside the label
+        reverse = tkinter.LEFT if orient == tkinter.RIGHT else tkinter.RIGHT
+        anchor_lbl = 'w' if orient == tkinter.LEFT else 'e'
+        anchor_var = 'e' if orient == tkinter.LEFT else 'w'
+        # Anchor is used to place the text inside the label
+        cnf_var['anchor'] = anchor_var
 
         if "font" in kwargs:
             font = kwargs["font"]
@@ -149,29 +161,31 @@ class LabeledVariable(tkinter.Frame):
         self.label = tkinter.Label(self, **cnf_lbl)
         self.variable = tkinter.Label(self, **cnf_var)
 
-        self.label.pack(side=orientation, expand=False, anchor=anchor_lbl)
-        self.variable.pack(side=reverse_orientation, expand=expand, fill=sticky)
+        self.label.pack(side=orient, expand=False, anchor=anchor_lbl)
+        self.variable.pack(side=reverse, expand=expand, fill=sticky)
         self.configure(kwargs)
 
-    def get_variable(self):
+    def get_variable(self) -> 'tkinter.Variable':
         """Get the tkinter variable.
 
-        :return: The tkinter.StringVar instance used to control the variable label
+        :return: The tkinter.StringVar instance used to control the variable
         """
         return self._variable
 
 
 class StaticTextArea(tkinter.Text):
 
-    """Wrapper around a tkinter.Text object to provide a simple text area which can not be edited.
+    """Wrapper around a tkinter.Text object to provide a simple text area.
 
-    This subclass of tkinter.Text forces itself to be non-editable by the user at all times. As such, it is intended as
-    a simple display of multi-line text.
+    This subclass of tkinter.Text forces itself to be non-editable by the user
+    at all times. As such, it is intended as a simple display of multi-line
+    text.
 
-    The insert and delete methods are overloaded to correctly work with a disabled tkinter.Text object
+    The insert and delete methods are overloaded to correctly work with a
+    disabled tkinter.Text object
     """
 
-    def __init__(self, root: tkinter.Frame, *args, **kwargs) -> None:
+    def __init__(self, root: 'tkinter.Frame', *args, **kwargs) -> None:
         """Initialize this tkinter.Text area
 
         :param root: The root tkinter.Frame to place this Text widget in
@@ -182,10 +196,11 @@ class StaticTextArea(tkinter.Text):
         self.tag_config("wrap", wrap=tkinter.WORD)
         self.config(state='disabled')
 
-    def insert(self, index, chars, *args):
+    def insert(self, index: Index, chars: str, *args) -> None:
         """Insert text into the text area starting at the given index.
 
-        Text inserted with this method automatically has the "wrap" tag applied to it which wraps on word boundaries.
+        Text inserted with this method automatically has the "wrap" tag applied
+        to it which wraps on word boundaries.
 
         :param index: The index to insert the text at
         :param chars: The text to insert at the given index
@@ -195,10 +210,11 @@ class StaticTextArea(tkinter.Text):
         tkinter.Text.insert(self, index, chars, ("wrap", *args))
         self.config(state='disabled')
 
-    def delete(self, index1, index2=None) -> None:
+    def delete(self, index1: Index, index2: 'Optional[Index]' = None) -> None:
         """Delete text between the two indices.
 
-        If the second index is None (the default value), then the deletion will remove all text after the first index
+        If the second index is None (the default value), then the deletion will
+        remove all text after the first index
 
         :param index1: The starting index to delete from
         :param index2: The end index to delete to
@@ -207,7 +223,7 @@ class StaticTextArea(tkinter.Text):
         tkinter.Text.delete(self, index1, index2)
         self.config(state='disabled')
 
-    def replace(self, chars, *tags) -> None:
+    def replace(self, chars: str, *tags) -> None:
         """Replace all text in the text instance with the given text.
 
         :param chars: The new text to display
@@ -224,22 +240,27 @@ class StaticTextArea(tkinter.Text):
 
 
 class CustomTextArea(tkinter.Text):
-    def __init__(self, root: 'tkinter.Frame', *args, **kwargs):
+    def __init__(self, root: 'tkinter.Frame', *args, **kwargs) -> None:
         tkinter.Text.__init__(self, root, *args, **kwargs)
         self._mark = None
-        self.bind_multiple(('<a>', self._keycode_a), ('<b>', self._keycode_b), ('<d>', self._keycode_d),
-                           ('<e>', self._keycode_e), ('<f>', self._keycode_f), ('<n>', self._keycode_n),
-                           ('<p>', self._keycode_p), ('<y>', self._keycode_y), ('<w>', self._keycode_w),
-                           ('<k>', self._keycode_k),
-                           ('<BackSpace>', self._keycode_backspace), ("<Button-1>", self._action_click),
-                           ('<space>', self._keycode_space))
+        self.bind_multiple(
+            ('<a>', self._key_code_a), ('<b>', self._key_code_b),
+            ('<d>', self._key_code_d), ('<e>', self._key_code_e),
+            ('<f>', self._key_code_f), ('<n>', self._key_code_n),
+            ('<p>', self._key_code_p), ('<y>', self._key_code_y),
+            ('<w>', self._key_code_w), ('<k>', self._key_code_k),
+            ('<BackSpace>', self._key_code_backspace),
+            ("<Button-1>", self._action_click),
+            ('<space>', self._key_code_space)
+        )
 
-    def move_cursor(self, index: str):
+    def move_cursor(self, index: Index) -> None:
         """Move the insertion cursor to the given index
 
-        This method attempts to make sure that selections and marks are handled appropriately
+        This method attempts to make sure that selections and marks are handled
+        appropriately. The index may be a mark, tag, or proper index.
 
-        :param index: The index (mark, tag, or index) to move the insertion cursor to
+        :param index: The index to move the insertion cursor to
         """
         self.mark_set('insert', index)
         if self._mark is None:
@@ -257,16 +278,16 @@ class CustomTextArea(tkinter.Text):
             elif iy > my or (iy == my and ix > mx):
                 self.tag_add('sel', self.index('mark'), self.index('insert'))
 
-    def clipboard_replace(self, text):
-        """Replace the contents of the clipboard with the given text
+    def clipboard_replace(self, text: str) -> None:
+        """Replace the contents of the clipboard with the given text.
 
         :param text: The text to place on the clipboard
         """
         self.clipboard_clear()
         self.clipboard_append(text)
 
-    def set_custom_mark(self):
-        """Set the custom mark to the current insertion cursor index"""
+    def set_custom_mark(self) -> None:
+        """Set the custom mark to the current insertion cursor index."""
         if self._mark is None:
             self._mark = self.index('insert')
             self.tag_remove('sel', '0.1', 'end')
@@ -274,24 +295,27 @@ class CustomTextArea(tkinter.Text):
             self.mark_set('tk::anchor1', 'insert')
             self.tag_delete('sel')
 
-    def unset_custom_mark(self):
-        """Remove the custom mark from the text, removing any selection that may have been created by it"""
+    def unset_custom_mark(self) -> None:
+        """Remove the custom mark from the text, removing any selection
+        that may have been created by it.
+        """
         if self._mark is not None:
             self._mark = None
             self.tag_remove('sel', '0.1', 'end')
             self.mark_unset('mark')
             self.mark_set('tk::anchor1', 'insert')
 
-    def bind_multiple(self, *args):
-        """Bind multiple events to this Text instance
+    def bind_multiple(self, *args) -> None:
+        """Bind multiple events to this Text instance.
 
         :param args: Tuples of (binding_string, callback) to bind
         """
-        for keycode, event in args:
-            self.bind(keycode, event)
+        for key_code, event in args:
+            self.bind(key_code, event)
 
     def get_index(self, mark_name: str) -> 'Tuple[int, int]':
-        """Parse and return a two-tuple of (y, x) which represents the given index
+        """Parse and return a two-tuple of (y, x) which represents the
+        given index.
 
         :param mark_name: The name of the mark to parse
         :returns: A two-tuple of (y, x), representing the location of the mark
@@ -299,50 +323,60 @@ class CustomTextArea(tkinter.Text):
         px, py = self.index(mark_name).split('.', 2)
         return int(px), int(py)
 
-    def _action_click(self, event):
+    def _action_click(self, event: 'tkinter.Event') -> None:
         if not shift(event):
             self.unset_custom_mark()
 
-    def _keycode_a(self, event) -> 'Optional[str]':
-        # TODO: Provide key binding for selecting whole text - ctrl-a as start of line is shadows native select all
+    def _key_code_a(self, event: 'tkinter.Event') -> 'Optional[str]':
+        # TODO: Provide key binding for selecting whole text
+        #       ctrl-a as start of line shadows native select all
         if control(event) and not alt(event):
             y, x = self.get_index('insert')
             self.move_cursor('{}.{}'.format(y, 0))
             return "break"
 
-    def _keycode_b(self, event) -> 'Optional[str]':
+    def _key_code_b(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             self.move_cursor('insert-1c')
             return "break"
         if alt(event) and not control(event):
-            idx = self.search(r'\m\w+\M', 'insert', backwards=True, regexp=True, stopindex='0.1')
+            idx = self.search(
+                r'\m\w+\M', 'insert', backwards=True, regexp=True,
+                stopindex='0.1'
+            )
             self.move_cursor(idx if idx != "" else '0.1')
 
-    def _keycode_d(self, event) -> 'Optional[str]':
+    def _key_code_d(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             self.delete('insert', 'insert+1c')
             return 'break'
         if alt(event) and not control(event):
-            idx = self.search(r'\M', 'insert+1c', backwards=False, regexp=True, stopindex='end')
+            idx = self.search(
+                r'\M', 'insert+1c', backwards=False, regexp=True,
+                stopindex='end'
+            )
             if idx != "":
                 self.delete('insert', idx)
 
-    def _keycode_e(self, event) -> 'Optional[str]':
+    def _key_code_e(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event)and not alt(event):
             y, x = self.get_index('insert')
             self.move_cursor('{}.end'.format(y))
             return "break"
 
-    def _keycode_f(self, event) -> 'Optional[str]':
+    def _key_code_f(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             self.move_cursor('insert+1c')
             return "break"
         if alt(event) and not control(event):
-            idx = self.search(r'\M', 'insert+1c', backwards=False, regexp=True, stopindex='end')
+            idx = self.search(
+                r'\M', 'insert+1c', backwards=False, regexp=True,
+                stopindex='end'
+            )
             self.move_cursor(idx if idx != '' else 'end')
             return "break"
 
-    def _keycode_k(self, event) -> 'Optional[str]':
+    def _key_code_k(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             y, x = self.get_index('insert')
             text = self.get('insert', '{}.end'.format(y))
@@ -352,17 +386,17 @@ class CustomTextArea(tkinter.Text):
                 self.unset_custom_mark()
             return "break"
 
-    def _keycode_n(self, event) -> 'Optional[str]':
+    def _key_code_n(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             self.move_cursor('insert+1l')
             return "break"
 
-    def _keycode_p(self, event) -> 'Optional[str]':
+    def _key_code_p(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             self.move_cursor('insert-1l')
             return "break"
 
-    def _keycode_w(self, event) -> 'Optional[str]':
+    def _key_code_w(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             try:
                 text = self.get('sel.first', 'sel.last')
@@ -384,7 +418,7 @@ class CustomTextArea(tkinter.Text):
                 pass
             return "break"
 
-    def _keycode_y(self, event) -> 'Optional[str]':
+    def _key_code_y(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             clipboard = self.clipboard_get()
             if clipboard != "":
@@ -395,60 +429,78 @@ class CustomTextArea(tkinter.Text):
                 self.insert('insert', clipboard)
             return "break"
 
-    def _keycode_space(self, event) -> 'Optional[str]':
+    def _key_code_space(self, event: 'tkinter.Event') -> 'Optional[str]':
         if control(event) and not alt(event):
             if self._mark is not None:
                 self.unset_custom_mark()
             else:
                 self.set_custom_mark()
+            return None
 
-    def _keycode_backspace(self, event) -> 'Optional[str]':
+    def _key_code_backspace(self, event: 'tkinter.Event') -> 'Optional[str]':
         if alt(event) and not control(event):
-            idx = self.search(r'\m\w+\M', 'insert', backwards=True, regexp=True)
+            idx = self.search(
+                r'\m\w+\M', 'insert', backwards=True, regexp=True
+            )
             self.delete(idx if idx != "" else '0.1', 'insert')
             return 'break'
 
 
 class VerticalScrolledFrame(tkinter.Frame):
-    def __init__(self, root: tkinter.Frame, *args, **kwargs):
+    def __init__(self, root: 'tkinter.Frame', *args, **kwargs) -> None:
         tkinter.Frame.__init__(self, root, *args, **kwargs)
 
         self._scrollbar = tkinter.Scrollbar(self, orient="vertical")
         self._scrollbar.pack(fill='y', side="right", expand=0)
 
-        self._canvas = tkinter.Canvas(self, bd=0, highlightthickness=0, yscrollcommand=self._scrollbar.set)
+        self._canvas = tkinter.Canvas(
+            self, bd=0, highlightthickness=0,
+            yscrollcommand=self._scrollbar.set
+        )
         self._canvas.pack(side='right', fill='both', expand=1)
         self._scrollbar.config(command=self._canvas.yview)
 
         self._canvas.xview_moveto(0)
         self._canvas.yview_moveto(0)
         self._interior = tkinter.Frame(self._canvas)
-        self._interior_id = self._canvas.create_window(0, 0, window=self._interior, anchor='nw')
+        self._interior_id = self._canvas.create_window(
+            0, 0, window=self._interior, anchor='nw'
+        )
 
-        def _configure_interior(_):
-            size = (self._interior.winfo_reqwidth(), self._interior.winfo_reqheight())
-            self._canvas.config(scrollregion="0 0 {} {}".format(size[0], size[1]))
+        def _configure_interior(_) -> None:
+            size = (
+                self._interior.winfo_reqwidth(),
+                self._interior.winfo_reqheight()
+            )
+            self._canvas.config(scrollregion="0 0 {} {}".format(
+                size[0], size[1]
+            ))
             if self._interior.winfo_reqwidth() != self._canvas.winfo_width():
                 self._canvas.config(width=self._interior.winfo_reqwidth())
         self._interior.bind("<Configure>", _configure_interior)
 
-        def _configure_canvas(_):
+        def _configure_canvas(_) -> None:
             if self._interior.winfo_reqwidth() != self._canvas.winfo_width():
-                self._canvas.itemconfigure(self._interior_id, width=self._canvas.winfo_width())
+                self._canvas.itemconfigure(
+                    self._interior_id, width=self._canvas.winfo_width()
+                )
         self._canvas.bind("<Configure>", _configure_canvas)
 
-    def interior(self) -> tkinter.Frame:
+    def interior(self) -> 'tkinter.Frame':
         return self._interior
 
-    def canvas(self) -> tkinter.Canvas:
+    def canvas(self) -> 'tkinter.Canvas':
         return self._canvas
 
 
 class NumericEntry(tkinter.Entry):
-    def __init__(self, root: 'tkinter.Frame', *args, **kwargs):
-        self._valfn = kwargs.get('validatecommand', None)
-        vcmd = (root.register(self._validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
-        kwargs['validatecommand'] = vcmd
+    def __init__(self, root: 'tkinter.Frame', *args, **kwargs) -> None:
+        self._val_fn = kwargs.get('validatecommand', None)
+        validate_cmd = (
+            root.register(self._validate),
+            '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W'
+        )
+        kwargs['validatecommand'] = validate_cmd
         kwargs['validate'] = 'key'
 
         if 'integral' in kwargs:
@@ -457,14 +509,20 @@ class NumericEntry(tkinter.Entry):
         else:
             self._int_only = False
 
-        self._validate_text = "0123456789" if self._int_only else "0123456789-+."
+        self._validate_text = "0123456789"
+        if not self._int_only:
+            self._validate_text = "0123456789-+."
 
         tkinter.Entry.__init__(self, root, *args, **kwargs)
 
-    def get(self):
-        return int(tkinter.Entry.get(self)) if self._int_only else float(tkinter.Entry.get(self))
-    
-    def _validate(self, action, index, value_if_allowed, pvalue, text, vtype, ttype, wname):
+    def get(self) -> 'Union[int, float]':
+        value = tkinter.Entry.get(self)
+        if self._int_only:
+            return int(value)
+        return float(value)
+
+    def _validate(self, action, index, value_if_allowed, pvalue, text, vtype,
+                  ttype, wname) -> bool:
         if action == '1':
             if text in self._validate_text:
                 try:
@@ -480,8 +538,10 @@ class NumericEntry(tkinter.Entry):
             return True
 
         # If we have another validation command, call it and return its result
-        if self._valfn is not None:
+        if self._val_fn is not None:
             # We pass the parsed value instead of the text value
-            return bool(self._valfn(action, index, value, pvalue, text, vtype, ttype, wname))
+            return bool(self._val_fn(
+                action, index, value, pvalue, text, vtype, ttype, wname
+            ))
         # Otherwise, return true
         return True
