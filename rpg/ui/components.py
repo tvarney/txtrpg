@@ -459,31 +459,14 @@ class AttributeEditorFrame(tk.Frame):
         :param actor: The Player instance to set values on
         """
         actor.attribute_points = self._points.get()
-        actor.stats.strength.level_up(
-            self._frmStr.value.get() - actor.stats.strength.value()
-        )
-        actor.stats.dexterity.level_up(
-            self._frmDex.value.get() - actor.stats.dexterity.value()
-        )
-        actor.stats.constitution.level_up(
-            self._frmCon.value.get() - actor.stats.constitution.value()
-        )
-        actor.stats.agility.level_up(
-            self._frmAgl.value.get() - actor.stats.agility.value()
-        )
-        actor.stats.intelligence.level_up(
-            self._frmInt.value.get() - actor.stats.intelligence.value()
-        )
-        actor.stats.wisdom.level_up(
-            self._frmWis.value.get() - actor.stats.wisdom.value()
-        )
-        actor.stats.charisma.level_up(
-            self._frmCha.value.get() - actor.stats.charisma.value()
-        )
-        actor.stats.luck.level_up(
-            self._frmLck.value.get() - actor.stats.luck.value()
-        )
-        actor.calculate_secondaries()
+        actor.stats.strength.level = self._frmStr.value.get()
+        actor.stats.dexterity.level = self._frmDex.value.get()
+        actor.stats.constitution.level = self._frmCon.value.get()
+        actor.stats.agility.level = self._frmAgl.value.get()
+        actor.stats.intelligence.level = self._frmInt.value.get()
+        actor.stats.wisdom.level = self._frmWis.value.get()
+        actor.stats.charisma.level = self._frmCha.value.get()
+        actor.stats.luck.level = self._frmLck.value.get()
 
 
 class StatCanvas(tk.Canvas):
@@ -563,7 +546,7 @@ class InventoryRow(object):
         self._item_stack = item_stack
         self._item = item_stack.item().item()
         self.lbl_count = tk.Label(parent, text=str(item_stack.count()))
-        self.lbl_name = tk.Label(parent, text=self._item.name())
+        self.lbl_name = tk.Label(parent, text=self._item.name)
         self.entry_count = widgets.NumericEntry(
             parent, width=3, validatecommand=self._validate
         )
@@ -600,7 +583,7 @@ class InventoryRow(object):
             return value_if_allowed > 0
 
     def _action_use(self):
-        print("Use: {}".format(self._item.name()))
+        print("Use: {}".format(self._item.name))
 
     def _action_delete(self):
         try:

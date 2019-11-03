@@ -58,35 +58,6 @@ class Player(Actor):
         Actor.__init__(self, "builtin.player", "")
         self.attribute_points = 0  # type: int
 
-    def calculate_secondaries(self):
-        """Calculate the health, mana, and stamina of the player from the
-        primary stats.
-
-        The health of the character is calculated as:
-          (constitution * 3 + strength * 7)
-        The stamina of the character is calculated as:
-          (constitution * 7 + agility * 3)
-        The mana of the character is calculated as:
-          (intelligence * 7 + wisdom * 3)
-        """
-        cn = self.stats.constitution.level()
-        st = self.stats.strength.level()
-        ag = self.stats.agility.level()
-        iq = self.stats.intelligence.level()
-        ws = self.stats.wisdom.level()
-
-        current_health = self.stats.health.level()
-        new_health = cn * 3 + st * 7
-        self.stats.health.level_up(new_health - current_health)
-
-        current_stamina = self.stats.stamina.level()
-        new_stamina = cn * 7 + ag * 3
-        self.stats.stamina.level_up(new_stamina - current_stamina)
-
-        current_mana = self.stats.mana.level()
-        new_mana = iq * 7 + ws * 3
-        self.stats.mana.level_up(new_mana - current_mana)
-
 
 class NonPlayerCharacter(Actor):
     """An actor which is not the player.

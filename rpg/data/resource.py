@@ -39,7 +39,9 @@ class ResourceType(IntEnum):
     Actor = 3
     Callback = 4
     Recipe = 5
-    COUNT = 6
+    Effect = 6
+    Attack = 7
+    COUNT = 8
 
 
 class Resource(metaclass=ABCMeta):

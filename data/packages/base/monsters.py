@@ -7,8 +7,13 @@ if typing.TYPE_CHECKING:
 
 class Goblin(actor.NonPlayerCharacter):
     def __init__(self) -> None:
-        stats = attributes.AttributeList(str=8, dex=6, con=8, agl=7, int=5, wis=5, cha=3, lck=5)
-        actor.NonPlayerCharacter.__init__(self, 'mob.goblin', "Goblin", stats=stats)
+        stats = attributes.AttributeList.load({
+            'str': 8, 'dex': 6, 'con': 8, 'agl': 7, 'int': 5, 'wis': 5,
+            'cha': 3, 'lck': 5
+        })
+        actor.NonPlayerCharacter.__init__(
+            self, 'mob.goblin', "Goblin", stats=stats
+        )
 
     def get_intro_text(self, game: 'app.Game') -> str:
         return "\n".join(("You are fighting a goblin",

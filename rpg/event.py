@@ -146,7 +146,7 @@ class UpdateOptionsEvent(GameEvent):
             return
 
         # Coerce the type to make mypy/PyCharm happy
-        typing.cast(views.GameView, view).set_options(self._option_list)
+        typing.cast('views.GameView', view).set_options(self._option_list)
 
 
 class LocationEvent(GameEvent):

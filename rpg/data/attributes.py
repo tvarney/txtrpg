@@ -1,7 +1,13 @@
 
+import abc
 import typing
 if typing.TYPE_CHECKING:
-    from typing import Optional, Tuple, Union
+    from typing import Dict, Optional, Sequence, Tuple
+
+AttributeData = typing.Union[
+    int,
+    typing.Tuple[int, int],
+]
 
 
 class Attribute(object):
@@ -29,7 +35,8 @@ class Attribute(object):
         Stamina: How much exertion the Actor can take before collapsing
         Mana:    Magical energy, used for casting spells
 
-    For more on Secondary attributes, see the rpg.attributes.Stat class
+    For more on Secondary attributes, see the rpg.attributes.SecondaryAttribute
+    class.
 
     The default value for the level of Primary Attributes is 10. This
     represents the average value that a human would have. As such, an Actor
@@ -52,6 +59,7 @@ class Attribute(object):
         self._level = level
         self._value = value if value is not None else level
 
+    @property
     def color(self) -> str:
         """Get the color to display this attribute in.
 
@@ -63,6 +71,50 @@ class Attribute(object):
             return Attribute.ColorAbove
         return Attribute.ColorBelow
 
+    @property
+    def short_string(self) -> str:
+        return self.string(True)
+
+    @property
+    def long_string(self) -> str:
+        return self.string(False)
+
+    @property
+    def level(self) -> int:
+        return self._level
+
+    @level.setter
+    def level(self, new_value: int) -> None:
+        self.set_level(new_value)
+
+    @property
+    def actual_level(self) -> int:
+        return self._level
+
+    @property
+    def value(self) -> int:
+        return self._value
+
+    @value.setter
+    def value(self, new_value: int) -> None:
+        self.set_value(new_value)
+
+    def load(self, data: 'Optional[AttributeData]') -> None:
+        if data is None:
+            return
+
+        if type(data) is tuple:
+            if len(data) != 2:
+                raise ValueError("too few elements in Attribute data tuple")
+            self.level = data[0]
+            self.value = data[1]
+        elif type(data) is int:
+            self.level = data
+        else:
+            raise ValueError(
+                "invalid Attribute data type {}".format(type(data))
+            )
+
     def string(self, short: bool = False) -> str:
         """Get a string representation of this Attribute.
 
@@ -73,55 +125,15 @@ class Attribute(object):
             return str(self._value)
         return "{} [{:+}]".format(self._value, self._value - self._level)
 
-    def level(self) -> int:
-        """Get the level of this attribute.
+    def set_level(self, new_value: int) -> None:
+        difference = new_value - self._level
+        if difference < 0:
+            difference = max(-self._level, difference)
+        self._level += difference
+        self._value += difference
 
-        :return: The level of this attribute
-        """
-        return self._level
-
-    def value(self) -> int:
-        """Get the value of this attribute.
-
-        :return: The value of this attribute
-        """
-        return self._value
-
-    def level_up(self, increment: int = 1) -> None:
-        """Increase the level of this attribute.
-
-        This method will also increase the value of the Attribute by the same
-        amount.
-
-        :param increment: The amount to increase the level of this attribute by
-        """
-        self._level += increment
-        self._value += increment
-
-    def level_down(self, decrement: int = 1) -> None:
-        """Decrease the level of this attribute.
-
-        This method will also decrease the value of the Attribute by the same
-        amount.
-
-        :param decrement: The amount to decrease the level of this attribute
-        """
-        self._level -= decrement
-        self._value -= decrement
-
-    def increase(self, increment: int = 1) -> None:
-        """Increase the value of this attribute.
-
-        :param increment: The amount to increase the value of this attribute by
-        """
-        self._value += increment
-
-    def decrease(self, decrement: int = 1) -> None:
-        """Decrease the value of this attribute.
-
-        :param decrement: The amount to decrease the value of this attribute by
-        """
-        self._value -= decrement
+    def set_value(self, new_value: int) -> None:
+        self._value = new_value
 
     def __str__(self) -> str:
         """Get the string representation of this Attribute.
@@ -141,7 +153,34 @@ class Attribute(object):
         return "Attribute({}, {})".format(self._level, self._value)
 
 
-class Stat(Attribute):
+class AttributeChangeListener(abc.ABC):
+    @abc.abstractmethod
+    def update(self, attr: 'Attribute', msg: str) -> None:
+        raise NotImplementedError()
+
+
+class PrimaryAttribute(Attribute):
+    def __init__(self, level: int = 10, value: 'Optional[int]' = None) -> None:
+        Attribute.__init__(self, level, value)
+        self._listeners = list()
+
+    def add(self, listener: 'AttributeChangeListener') -> None:
+        self._listeners.append(listener)
+
+    def notify(self, notify_msg: str) -> None:
+        for listener in self._listeners:
+            listener.update(self, notify_msg)
+
+    def set_level(self, new_value: int) -> None:
+        Attribute.set_level(self, new_value)
+        self.notify("level")
+
+    def set_value(self, new_value: int) -> None:
+        Attribute.set_value(self, new_value)
+        self.notify("value")
+
+
+class SecondaryAttribute(Attribute, AttributeChangeListener):
     """A Secondary Attribute.
 
     For a thorough explanation of Attributes and Stats, see
@@ -165,8 +204,11 @@ class Stat(Attribute):
     ColorPoor = "orange"
     ColorHurt = "red"
 
-    def __init__(self, level: int = 100,
-                 value: 'Optional[int]' = None) -> None:
+    def __init__(
+        self, level: int = 0,
+        value: 'Optional[int]' = None,
+        tracked: 'Optional[Sequence[Tuple[int, PrimaryAttribute]]]' = None
+    ) -> None:
         """Create a new Stat instance.
 
         If the value argument is not given or is None, then the value is
@@ -176,36 +218,80 @@ class Stat(Attribute):
         :param value: The current value of the Stat
         """
         Attribute.__init__(self, level, value)
+        self._tracked = tracked
+        self._effective = level
+        for amount, attribute in self._tracked:
+            attribute.add(self)
+            self._effective += attribute.level * amount
+        if value is None:
+            self._value = self._effective
 
+    def update(self, attr: 'Attribute', msg: str) -> None:
+        """Update callback used to handle changes in a tracked
+        attribute.
+
+        :param attr: The attribute which changed
+        :param msg: Indicator of what changed.
+        """
+        if msg != 'level':
+            return
+
+        # Assign to the property so the value tracks correctly
+        new_value = self._level + sum(
+            amount * attribute.level for amount, attribute in self._tracked
+        )
+        difference = new_value - self._effective
+        self._effective = new_value
+        if difference > 0:
+            self._value += difference
+        elif self._value > self._effective:
+            self._value = self._effective
+
+    def string(self, short: bool = False) -> str:
+        """Get a string representation of this SecondaryAttribute.
+
+        :param short: If the string returned should be shortened if level
+                      equals value
+        :return: A string representing this Stat
+        """
+        if short and self._value == self._effective:
+            return str(self._effective)
+        return "{}/{}".format(self._value, self._effective)
+
+    @property
+    def level(self) -> int:
+        return self._effective
+
+    @level.setter
+    def level(self, new_value: int) -> None:
+        difference = new_value - self._effective
+        if difference < 0:
+            difference = max(-self._level, difference)
+
+        self._level += difference
+        self._effective += difference
+        if difference > 0 or self._value > self._effective:
+            self._value += difference
+
+    @property
     def color(self) -> str:
         """Get a tkinter color string used to represent the status of this
-        Stat.
+        SecondaryAttribute.
 
         The color string returned is controlled by class variables of the Stat
         class.
         :return: A tkinter color string
         """
         ratio = float(self._value) / float(self._level)
-        if ratio > Stat.ThresholdGood:
-            return Stat.ColorBuffed
-        if ratio > Stat.ThresholdOkay:
-            return Stat.ColorGood
-        if ratio > Stat.ThresholdPoor:
-            return Stat.ColorOkay
-        if ratio > Stat.ThresholdHurt:
-            return Stat.ColorPoor
-        return Stat.ColorHurt
-
-    def string(self, short: bool = False) -> str:
-        """Get a string representation of this Stat.
-
-        :param short: If the string returned should be shortened if level
-                      equals value
-        :return: A string representing this Stat
-        """
-        if short and self._value == self._level:
-            return str(self._level)
-        return "{}/{}".format(self._value, self._level)
+        if ratio > SecondaryAttribute.ThresholdGood:
+            return SecondaryAttribute.ColorBuffed
+        if ratio > SecondaryAttribute.ThresholdOkay:
+            return SecondaryAttribute.ColorGood
+        if ratio > SecondaryAttribute.ThresholdPoor:
+            return SecondaryAttribute.ColorOkay
+        if ratio > SecondaryAttribute.ThresholdHurt:
+            return SecondaryAttribute.ColorPoor
+        return SecondaryAttribute.ColorHurt
 
     def __repr__(self) -> str:
         """Get a string representation of this Stat which can be evaluated to a
@@ -223,113 +309,46 @@ class AttributeList(object):
     """
 
     @staticmethod
-    def _coerce(value: 'Union[int, Attribute, Tuple[int, int]]', class_):
-        if type(value) is tuple:
-            if len(value) > 1:
-                return class_(value[0], value[1])
-            return class_(value[0])
-        elif type(value) is int:
-            return class_(value)
-        else:
-            return value
+    def load(data: 'Dict[str, AttributeData]') -> 'AttributeList':
+        al = AttributeList()
+        al.strength.load(data.pop("str", None))
+        al.dexterity.load(data.pop("dex", None))
+        al.agility.load(data.pop("agl", None))
+        al.constitution.load(data.pop("con", None))
+        al.intelligence.load(data.pop("int", None))
+        al.wisdom.load(data.pop("wis", None))
+        al.charisma.load(data.pop("cha", None))
+        al.luck.load(data.pop("lck", None))
+        al.health.load(data.pop("hp", None))
+        al.mana.load(data.pop("mp", None))
+        al.stamina.load(data.pop("st", None))
+        return al
 
-    @staticmethod
-    def default_health(attr_list: 'AttributeList') -> int:
-        """Get the default level for the Health attribute from an AttributeList
+    def __init__(self) -> None:
+        self.strength = PrimaryAttribute()
+        self.dexterity = PrimaryAttribute()
+        self.agility = PrimaryAttribute()
+        self.constitution = PrimaryAttribute()
+        self.intelligence = PrimaryAttribute()
+        self.wisdom = PrimaryAttribute()
+        self.charisma = PrimaryAttribute()
+        self.luck = PrimaryAttribute()
 
-        :param attr_list: The AttributeList instance to calculate default
-                          health level from
-        :return: The default level of health an actor with this AttributeList
-                 would have
-        """
-        st = attr_list.strength.level()
-        cn = attr_list.constitution.level()
-        return st * 7 + cn * 3
-
-    @staticmethod
-    def default_mana(attr_list: 'AttributeList'):
-        """Get the default level for the Mana attribute from an AttributeList
-
-        :param attr_list: The AttributeList instance to calculate default mana
-                          from
-        :return: The default level of mana an actor with this AttributeList
-                 would have
-        """
-        iq = attr_list.intelligence.level()
-        ws = attr_list.wisdom.level()
-        return iq * 4 + ws * 6
-
-    @staticmethod
-    def default_stamina(attr_list: 'AttributeList'):
-        """Get the default level for the Stamina attribute from an
-        AttributeList.
-
-        :param attr_list: The AttributeList instance to calculate default
-                          stamina from
-        :return: The default level of stamina an actor with this AttributeList
-                 would have
-        """
-        cn = attr_list.constitution.level()
-        ag = attr_list.agility.level()
-        return cn * 7 + ag * 3
-
-    def __init__(self, **kwargs):
-        """Create a new AttributeList instance.
-
-        Keyword arguments which are accepted are:
-            health: Union[int, Stat, Tuple[int, int]]
-            stamina: Union[int, Stat, Tuple[int, int]]
-            mana: Union[int, Stat, Tuple[int, int]]
-
-            str: Union[int, Attribute, Tuple[int, int]]
-            dex: Union[int, Attribute, Tuple[int, int]]
-            con: Union[int, Attribute, Tuple[int, int]]
-            agl: Union[int, Attribute, Tuple[int, int]]
-            int: Union[int, Attribute, Tuple[int, int]]
-            wis: Union[int, Attribute, Tuple[int, int]]
-            cha: Union[int, Attribute, Tuple[int, int]]
-            lck: Union[int, Attribute, Tuple[int, int]]
-
-        :param kwargs: keyword arguments for initial attribute values
-        """
-
-        self.strength = AttributeList._coerce(
-            kwargs.get("str", Attribute(10)), Attribute
+        self.health = SecondaryAttribute(
+            tracked=(
+                (3, self.strength),
+                (7, self.constitution),
+            )
         )
-        self.dexterity = AttributeList._coerce(
-            kwargs.get("dex", Attribute(10)), Attribute
+        self.mana = SecondaryAttribute(
+            tracked=(
+                (3, self.wisdom),
+                (7, self.intelligence),
+            )
         )
-        self.constitution = AttributeList._coerce(
-            kwargs.get("con", Attribute(10)), Attribute
-        )
-        self.agility = AttributeList._coerce(
-            kwargs.get("agl", Attribute(10)), Attribute
-        )
-        self.intelligence = AttributeList._coerce(
-            kwargs.get("int", Attribute(10)), Attribute
-        )
-        self.wisdom = AttributeList._coerce(
-            kwargs.get("wis", Attribute(10)), Attribute
-        )
-        self.charisma = AttributeList._coerce(
-            kwargs.get("cha", Attribute(10)), Attribute
-        )
-        self.luck = AttributeList._coerce(
-            kwargs.get("lck", Attribute(10)), Attribute
-        )
-
-        self.health = AttributeList._coerce(
-            kwargs.get("health", Stat(AttributeList.default_health(self))),
-            Stat
-        )
-        self.mana = AttributeList._coerce(
-            kwargs.get("mana", Stat(AttributeList.default_mana(self))),
-            Stat
-        )
-        self.stamina = AttributeList._coerce(
-            kwargs.get("stamina", Stat(AttributeList.default_stamina(self))),
-            Stat
-        )
-        self.energy = AttributeList._coerce(
-            kwargs.get("energy", Stat(100)), Stat
+        self.stamina = SecondaryAttribute(
+            tracked=(
+                (6, self.constitution),
+                (4, self.agility)
+            )
         )
